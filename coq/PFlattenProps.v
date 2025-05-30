@@ -53,52 +53,42 @@ Lemma merge_vl_correct (st : state) : ∀ vars1 vars2 : list (string * nat),
   (fold_left Z.mul (map (pow st) vars1) 1 *
   fold_left Z.mul (map (pow st) vars2) 1)%Z.
 Proof.
-  remember (λ n,
-    ∀ vars1 vars2 : list (string * nat), n = len2 (vars1, vars2) →
-    fold_left Z.mul (map (pow st) (merge_vl (vars1, vars2))) 1%Z =
-    (fold_left Z.mul (map (pow st) vars1) 1 *
-    fold_left Z.mul (map (pow st) vars2) 1)%Z) as P.
-  assert (∀ n, P n). {
-    Opaque pow.
-    apply (well_founded_induction lt_wf); subst.
-    intros n IH [| [x ?] vars1] [| [y ?] vars2] Hlen;
-    rewrite merge_vl_equation; simpl in *;
-    [ reflexivity
-    | now repeat autorewrite with zsimpl
-    | repeat autorewrite with zsimpl;
-      now rewrite Z.mul_1_r |].
-    destruct (x <? y)%string eqn:?;
-    [| destruct (y <? x)%string eqn:? ]; autorewrite with zsimpl.
-    - rewrite map_spec, fold_left_spec.
-      rewrite <- fold_left_mul_acc.
-      erewrite IH; [| | now inversion Hlen ]; [| inversion Hlen; simpl; lia ].
-      rewrite map_spec, fold_left_spec.
-      rewrite mul_1_l.
-      replace ((fold_left Z.mul (map (pow st) vars1) 1 *
-                fold_left Z.mul (map (pow st) vars2) (pow st (y, n1)) * 
-                pow st (x, n0))%Z)
-         with (((fold_left Z.mul (map (pow st) vars1) 1 * pow st (x, n0)) *
-                fold_left Z.mul (map (pow st) vars2) (pow st (y, n1)))%Z);
-      [ now rewrite fold_left_mul_acc, mul_1_l | lia ].
-    - rewrite map_spec, fold_left_spec.
-      rewrite <- fold_left_mul_acc.
-      erewrite IH; [| | now inversion Hlen ]; [| inversion Hlen; simpl; lia ].
-      rewrite <- Z.mul_assoc.
-      rewrite map_spec, fold_left_spec, mul_1_l.
-      f_equal; now rewrite fold_left_mul_acc, mul_1_l.
-    - rewrite map_spec, fold_left_spec.
-      rewrite <- fold_left_mul_acc.
-      erewrite IH; [| | now inversion Hlen ]; [| inversion Hlen; simpl; lia ].
-      symmetry.
-      rewrite fold_left_pull_acc.
-      rewrite Z.mul_comm, fold_left_pull_acc.
-      pose proof (lt_antisym _ _ Heqb Heqb0); subst.
-      rewrite <- pow_distr.
-      lia.
-  }
-  subst.
-  intros vars1 vars2.
-  now apply (H (len2 (vars1, vars2)) vars1 vars2).
+  strong_list_induction.
+  Opaque pow.
+  intros n IH [| [x ?] vars1] [| [y ?] vars2] Hlen;
+  rewrite merge_vl_equation; simpl in *;
+  [ reflexivity
+  | now repeat autorewrite with zsimpl
+  | repeat autorewrite with zsimpl;
+    now rewrite Z.mul_1_r |].
+  destruct (x <? y)%string eqn:?;
+  [| destruct (y <? x)%string eqn:? ]; autorewrite with zsimpl.
+  - rewrite map_spec, fold_left_spec.
+    rewrite <- fold_left_mul_acc.
+    erewrite IH; [| | now inversion Hlen ]; [| inversion Hlen; simpl; lia ].
+    rewrite map_spec, fold_left_spec.
+    rewrite mul_1_l.
+    replace ((fold_left Z.mul (map (pow st) vars1) 1 *
+              fold_left Z.mul (map (pow st) vars2) (pow st (y, n1)) * 
+              pow st (x, n0))%Z)
+       with (((fold_left Z.mul (map (pow st) vars1) 1 * pow st (x, n0)) *
+              fold_left Z.mul (map (pow st) vars2) (pow st (y, n1)))%Z);
+    [ now rewrite fold_left_mul_acc, mul_1_l | lia ].
+  - rewrite map_spec, fold_left_spec.
+    rewrite <- fold_left_mul_acc.
+    erewrite IH; [| | now inversion Hlen ]; [| inversion Hlen; simpl; lia ].
+    rewrite <- Z.mul_assoc.
+    rewrite map_spec, fold_left_spec, mul_1_l.
+    f_equal; now rewrite fold_left_mul_acc, mul_1_l.
+  - rewrite map_spec, fold_left_spec.
+    rewrite <- fold_left_mul_acc.
+    erewrite IH; [| | now inversion Hlen ]; [| inversion Hlen; simpl; lia ].
+    symmetry.
+    rewrite fold_left_pull_acc.
+    rewrite Z.mul_comm, fold_left_pull_acc.
+    pose proof (lt_antisym _ _ Heqb Heqb0); subst.
+    rewrite <- pow_distr.
+    lia.
 Qed.
 
 Lemma times_pterm_correct (st : state) (p1 p2 : pterm) :
@@ -171,62 +161,55 @@ Proof.
   now apply Forall_forall.
 Qed.
 
-Lemma merge_vl_sorted_preserving : ∀ x y : var_list,
+Lemma merge_vl_sorted_preserving : ∀ x y,
   sorted_uniq x → sorted_uniq y →
   sorted_uniq (merge_vl (x, y)).
 Proof.
-  remember (λ n, ∀ x y : var_list, n = len2 (x, y) → 
-    sorted_uniq x → sorted_uniq y →
-    sorted_uniq (merge_vl (x, y))) as P.
-  assert (∀ n, P n). {
-    apply (well_founded_induction lt_wf); subst.
-    intros n IHn [| [x ?] vars1] [| [y ?] vars2] Hlen Hvars1 Hvars2;
-    try now (rewrite merge_vl_equation; subst; auto).
-    assert (
-      sorted_uniq (merge_vl (vars1, (y, n1) :: vars2)) /\
-      sorted_uniq (merge_vl ((x, n0) :: vars1, vars2)) /\
-      sorted_uniq (merge_vl (vars1, vars2))). {
-      simpl in Hlen.
-      destruct n; try discriminate; inversion Hlen.
-      repeat split.
-      - eapply (IHn n); subst; simpl; try lia; auto.
-        destruct vars1 as [| [x' ?] vars1]; [| inversion Hvars1 ]; now auto.
-      - eapply (IHn n); subst; simpl; try lia; auto.
-        destruct vars2 as [| [y' ?] vars2]; [| inversion Hvars2 ]; now auto.
-      - rewrite Nat.add_comm in H0; simpl in H0.
-        destruct n; try discriminate; inversion H0.
-        eapply (IHn n); subst; simpl; try lia; auto.
-        * destruct vars1 as [| [x' ?] vars1]; [| inversion Hvars1 ]; now auto.
-        * destruct vars2 as [| [y' ?] vars2]; [| inversion Hvars2 ]; now auto.
-    } destruct H as [? [? ?]].
-    remember H1 as H2; clear HeqH2.
-    rewrite merge_vl_equation in H;
-    rewrite merge_vl_equation in H0;
-    rewrite merge_vl_equation in H1;
-    rewrite merge_vl_equation;
-    destruct (x <? y)%string eqn:?;
-    [| destruct (y <? x)%string eqn:? ]; autorewrite with zsimpl.
-    - destruct vars1 as [| [x' ?] vars1]; rewrite merge_vl_equation;
-      [ econstructor; auto |].
-      destruct (x' <? y)%string eqn:?;
-      [| destruct (y <? x')%string eqn:? ]; autorewrite with zsimpl;
-      inversion Hvars1; subst; econstructor; auto.
-    - destruct vars2 as [| [y' ?] vars2]; rewrite merge_vl_equation;
-      [ econstructor; auto |].
-      destruct (x <? y')%string eqn:?;
-      [| destruct (y' <? x)%string eqn:? ]; autorewrite with zsimpl;
-      inversion Hvars2; subst; econstructor; auto.
-    - destruct vars2 as [| [y' ?] vars2], vars1 as [| [x' ?] vars1]; rewrite merge_vl_equation;
-      pose proof (lt_antisym _ _ Heqb Heqb0); subst;
-      try now (econstructor; auto).
-      + inversion H0; constructor; auto.
-      + inversion Hvars2; constructor; auto.
-      + destruct (x' <? y')%string eqn:?;
-        [| destruct (y' <? x')%string eqn:? ]; autorewrite with zsimpl;
-        inversion Hvars1; inversion Hvars2; subst; econstructor; auto.
-  }
-    subst; intros x y.
-    now apply (H (len2 (x, y)) x y).
+  strong_list_induction.
+  intros n IHn [| [x ?] vars1] [| [y ?] vars2] Hlen Hvars1 Hvars2;
+  try now (rewrite merge_vl_equation; subst; auto).
+  assert (
+    sorted_uniq (merge_vl (vars1, (y, n1) :: vars2)) /\
+    sorted_uniq (merge_vl ((x, n0) :: vars1, vars2)) /\
+    sorted_uniq (merge_vl (vars1, vars2))). {
+    simpl in Hlen.
+    destruct n; try discriminate; inversion Hlen.
+    repeat split.
+    - eapply (IHn n); subst; simpl; try lia; auto.
+      destruct vars1 as [| [x' ?] vars1]; [| inversion Hvars1 ]; now auto.
+    - eapply (IHn n); subst; simpl; try lia; auto.
+      destruct vars2 as [| [y' ?] vars2]; [| inversion Hvars2 ]; now auto.
+    - rewrite Nat.add_comm in H0; simpl in H0.
+      destruct n; try discriminate; inversion H0.
+      eapply (IHn n); subst; simpl; try lia; auto.
+      * destruct vars1 as [| [x' ?] vars1]; [| inversion Hvars1 ]; now auto.
+      * destruct vars2 as [| [y' ?] vars2]; [| inversion Hvars2 ]; now auto.
+  } destruct H as [? [? ?]].
+  remember H1 as H2; clear HeqH2.
+  rewrite merge_vl_equation in H;
+  rewrite merge_vl_equation in H0;
+  rewrite merge_vl_equation in H1;
+  rewrite merge_vl_equation;
+  destruct (x <? y)%string eqn:?;
+  [| destruct (y <? x)%string eqn:? ]; autorewrite with zsimpl.
+  - destruct vars1 as [| [x' ?] vars1]; rewrite merge_vl_equation;
+    [ econstructor; auto |].
+    destruct (x' <? y)%string eqn:?;
+    [| destruct (y <? x')%string eqn:? ]; autorewrite with zsimpl;
+    inversion Hvars1; subst; econstructor; auto.
+  - destruct vars2 as [| [y' ?] vars2]; rewrite merge_vl_equation;
+    [ econstructor; auto |].
+    destruct (x <? y')%string eqn:?;
+    [| destruct (y' <? x)%string eqn:? ]; autorewrite with zsimpl;
+    inversion Hvars2; subst; econstructor; auto.
+  - destruct vars2 as [| [y' ?] vars2], vars1 as [| [x' ?] vars1]; rewrite merge_vl_equation;
+    pose proof (lt_antisym _ _ Heqb Heqb0); subst;
+    try now (econstructor; auto).
+    + inversion H0; constructor; auto.
+    + inversion Hvars2; constructor; auto.
+    + destruct (x' <? y')%string eqn:?;
+      [| destruct (y' <? x')%string eqn:? ]; autorewrite with zsimpl;
+      inversion Hvars1; inversion Hvars2; subst; econstructor; auto.
 Qed.
 
 Lemma aexp_mul_pt_well_formed (l1 l2 : list pterm) :

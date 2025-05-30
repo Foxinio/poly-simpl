@@ -9,6 +9,57 @@ Import ListNotations.
 
 Ltac inv H := inversion H; clear H; subst.
 
+Definition len2 {A} (p : list A*list A) : nat :=
+  let '(l1, l2) := p in
+  List.length l1 + List.length l2.
+Hint Unfold len2 : core.
+
+Ltac strong_list1_induction :=
+  match goal with
+  | [ |- forall l : ?ty, ?H ] =>
+      let ty := match ty with
+          | list ?T => constr:(T)
+          | _ => fail "not a list"
+          end
+      in
+      let P := fresh "P" in
+      remember (λ n : nat, ∀ l : list ty, n = List.length l → H) as P;
+      let H := fresh "H" in let l := fresh "l" in
+      enough (H: ∀ n : nat, P n);
+      [ subst; try (intros l; now apply (H (List.length l)))
+      | apply (well_founded_induction lt_wf); subst ]
+  end.
+
+
+Ltac strong_list_induction :=
+  match goal with
+  | [ |- forall l1 l2 : ?ty, ?H ] =>
+      let ty := match ty with
+          | list ?T => constr:(T)
+          | _ => fail "not a list"
+          end
+      in
+      let P := fresh "P" in
+      remember (λ n : nat, ∀ l1 l2 : list ty, n = List.length l1 + List.length l2 → H) as P;
+      let H := fresh "H" in let l1 := fresh "l1" in let l2 := fresh "l2" in
+      enough (H: ∀ n : nat, P n);
+      [ subst; try (intros l1 l2; now apply (H (len2 (l1, l2))))
+      | apply (well_founded_induction lt_wf); subst ]
+  | [ |- forall l : ?ty, ?H ] =>
+      let ty := match ty with
+          | list ?T => constr:(T)
+          | _ => fail "not a list"
+          end
+      in
+      let P := fresh "P" in
+      remember (λ n : nat, ∀ l : list ty, n = List.length l → H) as P;
+      let H := fresh "H" in let l := fresh "l" in
+      enough (H: ∀ n : nat, P n);
+      [ subst; try (intros l; now apply (H (List.length l)))
+      | apply (well_founded_induction lt_wf); subst ]
+  end.
+
+
 Lemma ltb_trans a : forall b c,
   (a <? b)%string = true →
   (b <? c)%string = true →
@@ -101,10 +152,12 @@ Definition cross {A B C : Type} (f : A -> B -> C)
     (l1 : list A) (l2 : list B) : list C :=
   List.concat (map (fun a => map (f a) l2) l1).
 
-Definition len2 {A} (p : list A*list A) : nat :=
-  let '(l1, l2) := p in
-  List.length l1 + List.length l2.
-Hint Unfold len2 : core.
+Lemma nat_lt_antisym (x y : nat) :
+  x <? y = false →
+  y <? x = false →
+  x = y.
+Proof.
+Admitted.
 
 Lemma lt_antisym (x y : string) :
   (ltb x y)%string = false →
@@ -169,11 +222,12 @@ Proof. reflexivity. Qed.
 Lemma mul_1_l a : (1 * a)%Z = a.
 Proof. destruct a; auto. Qed.
 
-Theorem strong_induction (P : nat → Prop) :
-  (∀ n, (∀ k, k < n → P k) -> P n) -> forall n, P n.
+Lemma fold_left_mul_add_distr (l : list Z) (c1 c2 : Z) :
+  (fold_left Z.mul l c2 + fold_left Z.mul l c1)%Z =
+   fold_left Z.mul l (c1 + c2)%Z.
 Proof.
-  intros H.
-  apply (well_founded_induction lt_wf).
-  exact H.
+  induction l; simpl; auto using Z.add_comm.
+  repeat rewrite <- fold_left_mul_acc.
+  now rewrite <- Z.mul_add_distr_r, IHl.
 Qed.
 
