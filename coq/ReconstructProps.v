@@ -9,7 +9,7 @@ Require Import Syntax Utils Reconstruct ClearZP.
 
 
 
-Theorem reconstruct_correct (st : state) (l : list pterm) :
+Theorem reconstruct_correct (l : list pterm) :
   pterm_list_well_formed l →
   no_zero_powers l →
   reconstruct l ≲ₗ l.

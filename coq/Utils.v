@@ -1,5 +1,7 @@
 Require Import Utf8.
 From Coq Require Import Strings.String ZArith.Int ZArith Lists.List.
+Require Import AsciiProps.
+
 
 Import Int.
 Open Scope Int_scope.
@@ -7,6 +9,31 @@ Import ListNotations.
 
 Ltac inv H := inversion H; clear H; subst.
 
+Lemma ltb_trans a : forall b c,
+  (a <? b)%string = true →
+  (b <? c)%string = true →
+  (a <? c)%string = true.
+Proof.
+  induction a; auto; simpl; intros.
+  - destruct c; cbn in *; auto.
+    destruct b; cbn in *; discriminate.
+  - destruct c; cbn in *; auto;
+    [ destruct b; cbn in *; discriminate |].
+    destruct b; cbn in *; try discriminate.
+    unfold String.ltb in *. cbn in *.
+    destruct (Ascii.compare a a2) eqn:?, (Ascii.compare a2 a1) eqn:?; try discriminate.
+    + specialize (Ascii.compare_eq_iff _ _ Heqc0) as ?;
+      specialize (Ascii.compare_eq_iff _ _ Heqc1) as ?; subst.
+      rewrite ascii_compare_refl.
+      eapply IHa; eauto.
+    + specialize (Ascii.compare_eq_iff _ _ Heqc0) as ?; subst.
+      now rewrite Heqc1.
+    + specialize (Ascii.compare_eq_iff _ _ Heqc1) as ?; subst.
+      now rewrite Heqc0.
+    + specialize (ascii_compare_trans _ _ _ Heqc0 Heqc1) as Haa1;
+      now rewrite Haa1.
+Qed.
+  
 Inductive sorted_uniq : list (string*nat) -> Prop :=
 | sorted_nil:
     sorted_uniq []
@@ -17,6 +44,58 @@ Inductive sorted_uniq : list (string*nat) -> Prop :=
     sorted_uniq (y :: l) ->
     sorted_uniq (x :: y :: l).
 Hint Constructors sorted_uniq : core.
+
+Lemma sorted_uniq_cons l a :
+  sorted_uniq (a :: l) → sorted_uniq l.
+Proof.
+  intro; destruct a as [x ?], l as [| [x' ?] l]; [ constructor |].
+  now inv H.
+Qed.
+
+Lemma sorted_uniq_shadow l :
+  ∀ a b, sorted_uniq (a :: b :: l) → sorted_uniq (a :: l).
+Proof.
+  induction l as [| [x ?] l]; simpl; auto; intros [y ?] [z ?] H.
+  inv H. inv H4.
+  constructor; [ eapply ltb_trans; now eassumption | assumption ].
+Qed.
+
+Lemma sorted_forall_inv l :
+  ∀ a, sorted_uniq l →
+  Forall (λ p, fst a <? fst p = true)%string l →
+  sorted_uniq (a :: l).
+Proof.
+  induction l as [| [x ?] l]; simpl; auto; intros [x' ?] Hs HF.
+  inv HF.
+  constructor; auto.
+Qed.
+
+Lemma sorted_forall_in l :
+  ∀ a, sorted_uniq (a :: l) →
+  ∀ a', In a' l → (fst a <? fst a' = true)%string.
+Proof.
+  induction l as [| [x ?] l]; simpl; intros [x' ?] H [x'' ?] HIn; auto.
+  destruct HIn.
+  - inv H0. inv H; auto.
+  - apply IHl; auto.
+    eapply sorted_uniq_shadow, H.
+Qed.
+
+Lemma sorted_forall l :
+  ∀ a, sorted_uniq (a :: l) →
+  Forall (λ p, fst a <? fst p = true)%string l.
+Proof.
+  induction l as [| [x ?] l]; intros [x' ?] Hsort; auto.
+  inv Hsort. apply Forall_forall; intros [x'' ?] Hin.
+  specialize (sorted_uniq_cons _ _ H3) as Hl.
+  inv Hin.
+  - inv H; auto.
+  - eapply sorted_forall_in; [| eassumption ].
+    destruct l as [| [x''' ?] l]; auto.
+    inv H3.
+    constructor; auto.
+    eapply ltb_trans; eassumption.
+Qed.
 
 Definition cross {A B C : Type} (f : A -> B -> C)
     (l1 : list A) (l2 : list B) : list C :=
@@ -40,19 +119,6 @@ Proof.
   - intros; discriminate.
   - intros; discriminate.
 Qed.
-
-Lemma ltb_trans a : forall b c,
-  (a <? b)%string = true →
-  (b <? c)%string = true →
-  (a <? c)%string = true.
-Proof.
-  induction a; auto; simpl; intros.
-  - destruct c; cbn in *; auto.
-    destruct b; cbn in *; discriminate.
-  - destruct c; cbn in *; auto;
-    [ destruct b; cbn in *; discriminate |].
-    cbn.
-Admitted.
 
 Lemma Z_match_id (z : Z) :
   (match z with

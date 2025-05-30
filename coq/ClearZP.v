@@ -25,3 +25,4 @@ Fixpoint clear_zero_powers (l : list pterm) : list pterm :=
 Definition no_zero_powers (l : list pterm) :=
   Forall (λ '(PTerm _ vars),
     Forall (λ '(_, n), n <> 0) vars) l.
+Hint Unfold no_zero_powers : core.
