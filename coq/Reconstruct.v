@@ -24,7 +24,7 @@ Fixpoint reconstruct (l : list pterm) : aexp :=
   | [] => ANum 0
   | [PTerm c vars] => reconstruct_monom c vars
   | PTerm c vars :: l' =>
-      AMult (reconstruct_monom c vars) (reconstruct l')
+      APlus (reconstruct_monom c vars) (reconstruct l')
   end.
 
 

@@ -7,14 +7,13 @@ Require Import Syntax Utils ClearZP.
 Import ListNotations.
 
 Theorem clear_zero_powers_correct (l : list pterm) :
-  pterm_list_well_formed l →
   l ≡ₗ clear_zero_powers l.
 Proof.
-  induction l as [| [c vars] l]; intros Hl st; auto.
+  induction l as [| [c vars] l]; intros st; auto.
   cbn.
-  rewrite IHl; [| inv Hl; assumption ].
+  rewrite IHl.
   f_equal.
-  clear IHl Hl l.
+  clear IHl l.
   induction vars as [| [x ?] l]; auto.
   cbn.
   destruct (Nat.eqb_spec n 0); subst.

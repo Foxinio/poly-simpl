@@ -20,14 +20,11 @@ Proof.
   unfold Correctness, poly_simpl.
   intros a st.
   rewrite reconstruct_correct.
-  - rewrite <- clear_zero_powers_correct.
-    + now rewrite <- poly_flatten_correct.
-    + apply poly_flatten_well_formed.
-  - apply clear_zero_powers_well_formed_preserving.
-    apply poly_flatten_well_formed.
-  - apply clear_zero_powers_no_zeros.
-    apply poly_flatten_well_formed.
+  rewrite <- clear_zero_powers_correct.
+  now rewrite <- poly_flatten_correct.
 Qed.
+
+Print Assumptions poly_simpl_correctness.
 
 Theorem poly_simpl_canonility : Canonality poly_simpl.
 Proof.
