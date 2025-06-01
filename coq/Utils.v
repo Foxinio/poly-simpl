@@ -84,7 +84,13 @@ Proof.
     + specialize (ascii_compare_trans _ _ _ Heqc0 Heqc1) as Haa1;
       now rewrite Haa1.
 Qed.
-  
+
+Lemma string_compare_refl a : (a ?= a = Eq)%string.
+Admitted.
+
+Lemma string_ltb_irrefl a : (a <? a)%string = false.
+Admitted.
+
 Inductive sorted_uniq : list (string*nat) -> Prop :=
 | sorted_nil:
     sorted_uniq []
@@ -231,3 +237,12 @@ Proof.
   now rewrite <- Z.mul_add_distr_r, IHl.
 Qed.
 
+Lemma Exists_witness {A} (P : A → Prop) l :
+  Exists P l → ∃ l1 a l2, l = l1 ++ a :: l2 /\ P a. 
+Proof.
+  induction l; intros H; inv H.
+  - exists [], a, l; split; auto.
+  - destruct (IHl H1) as [l1 [b [l2 [Hdiv Hp]]]].
+    exists (a::l1), b, l2; split; auto; simpl.
+    f_equal; auto.
+Qed.

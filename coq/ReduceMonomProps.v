@@ -3,25 +3,7 @@ Set Warnings "-notation-overridden,-parsing,-deprecated-hint-without-locality".
 From Coq Require Import Lia Lists.List Strings.String Recdef Wf_nat.
 Import ListNotations.
 
-From PolySimpl Require Import Syntax Utils ClearZP ReduceMonom.
-
-Lemma cmp_vars_eq_iff : ∀ v1 v2 : list (string*nat),
-  cmp_vars v1 v2 = Eq → v1 = v2.
-Proof.
-  strong_list_induction.
-  intros n' IH l1 l2 Hlen Hcmp.
-  destruct l1 as [| [x n] l1'] eqn:?, l2 as [| [y m] l2'] eqn:?; auto;
-  try now inversion Hcmp.
-  simpl in Hcmp.
-  destruct (x ?= y)%string eqn:?; try discriminate.
-  pose proof (String.compare_eq_iff _ _ Heqc).
-  destruct (n <? m) eqn:?; try discriminate;
-  destruct (m <? n) eqn:?; try discriminate.
-  pose proof (nat_lt_antisym _ _ Heqb Heqb0). 
-  f_equal; [ now subst |].
-  simpl in Hlen.
-  apply (IH (len2 (l1', l2'))); auto; simpl; lia.
-Qed.
+From PolySimpl Require Import Syntax Utils ClearZP ReduceMonom VarList.
 
 Lemma merge_monom_correct (st : state) :
   ∀ l1 l2,

@@ -3,23 +3,7 @@ Set Warnings "-notation-overridden,-parsing,-deprecated-hint-without-locality".
 From Coq Require Import Lia Lists.List Strings.String Recdef Wf_nat.
 Import ListNotations.
 
-Require Import Syntax Utils.
-
-Fixpoint cmp_vars (l1 l2 : var_list) : comparison :=
-  match l1, l2 with
-  | (x, n) :: l1', (y, m) :: l2' =>
-      match compare x y with
-      | Lt => Lt
-      | Gt => Gt
-      | Eq =>
-          if n <? m then Lt
-          else if m <? n then Gt
-          else cmp_vars l1' l2'
-      end
-  | [], [] => Eq
-  | _,  [] => Lt
-  | [],  _ => Gt
-  end.
+Require Import Syntax Utils VarList.
 
 Function merge_monom (p : list pterm*list pterm) {measure len2 p} :=
   let '(l1, l2) := p in
