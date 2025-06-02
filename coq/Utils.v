@@ -1,5 +1,6 @@
 Require Import Utf8.
-From Coq Require Import Strings.String ZArith.Int ZArith Lists.List Sorting.Permutation.
+From Coq Require Import ZArith.Int ZArith Lia.
+From Coq Require Import Strings.String Lists.List Sorting.Permutation.
 Require Import AsciiProps.
 
 
@@ -64,6 +65,25 @@ Ltac destruct_let :=
   | |- context [ let _ := ?e in _ ] =>
       destruct e eqn:?
   end.
+
+Ltac lia_specialize H :=
+  match goal with
+  | H: ?Assumption -> _ |- _ =>
+      let HAsmpt := fresh in
+      assert (HAsmpt: Assumption) by (now lia);
+      specialize (H HAsmpt);
+      clear HAsmpt
+  end.
+
+Ltac auto_specialize H :=
+  match goal with
+  | H: ?Assumption -> _ |- _ =>
+      let HAsmpt := fresh in
+      assert (HAsmpt: Assumption) by (now auto);
+      specialize (H HAsmpt);
+      clear HAsmpt
+  end.
+
 
 Lemma ltb_trans a : forall b c,
   (a <? b)%string = true →
