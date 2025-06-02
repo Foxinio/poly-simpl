@@ -1,5 +1,5 @@
 Require Import Utf8.
-From Coq Require Import Strings.String ZArith.Int ZArith Lists.List.
+From Coq Require Import Strings.String ZArith.Int ZArith Lists.List Sorting.Permutation.
 Require Import AsciiProps.
 
 
@@ -225,6 +225,10 @@ Lemma map_spec {A B : Type} (f : A → B) l a :
   map f (a :: l) = f a :: map f l.
 Proof. reflexivity. Qed.
 
+Lemma app_spec {A} l1 l2 (a : A) :
+  a :: (l1 ++ l2) = (a :: l1) ++ l2.
+Proof. reflexivity. Qed.
+
 Lemma mul_1_l a : (1 * a)%Z = a.
 Proof. destruct a; auto. Qed.
 
@@ -246,3 +250,30 @@ Proof.
     exists (a::l1), b, l2; split; auto; simpl.
     f_equal; auto.
 Qed.
+
+Theorem Forall_perm: forall {A} (f: A -> Prop) al bl,
+  Permutation al bl ->
+  Forall f al -> Forall f bl.
+Proof.
+Admitted.
+
+Lemma Forall_neq_nIn {A} (a : A) l :
+  Forall (λ b, a ≠ b) l → ~In a l. 
+Proof.
+  induction l.
+  - intros _ HC; inv HC.
+  - intros HFa HIn.
+    inv HFa.
+    inv HIn; auto.
+    apply IHl; auto.
+Qed.
+
+Lemma In_witness {A} (a : A) l :
+  In a l → ∃ l1 l2, l = l1 ++ a :: l2. 
+Proof.
+  induction l; simpl; [ intros HIn; inv HIn | intros [ Heq | HIn ]].
+  - exists [], l; subst; auto.
+  - destruct (IHl HIn) as [l1 [l2 Heq]].
+    exists (a0::l1), l2; subst; auto.
+Qed.
+
