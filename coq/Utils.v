@@ -59,6 +59,11 @@ Ltac strong_list_induction :=
       | apply (well_founded_induction lt_wf); subst ]
   end.
 
+Ltac destruct_let :=
+  match goal with
+  | |- context [ let _ := ?e in _ ] =>
+      destruct e eqn:?
+  end.
 
 Lemma ltb_trans a : forall b c,
   (a <? b)%string = true →

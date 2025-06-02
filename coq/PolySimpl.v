@@ -148,13 +148,13 @@ Proof.
   simpl. apply IHl1.
 Qed.
 
-Fixpoint group_pterms_impl (l : list pterm) (ls : list (list pterm)) {struct l} :
+Fixpoint group_pterms_acc (l : list pterm) (ls : list (list pterm)) {struct l} :
     grouped_pterms ls →
     { ls' : list (list pterm) | grouped_pterms ls' /\
-        Permutation (l ++ List.concat ls) (List.concat ls')  }.
+        Permutation (List.concat ls ++ l) (List.concat ls')  }.
 Proof.
   intro Hls;
-  destruct l; [ exists ls; split; [ apply Hls | reflexivity ] |].
+  destruct l; [ exists ls; split; [ apply Hls | now rewrite app_nil_r ] |].
   destruct (Disjoint_covered_dec ls p Hls)
     as [[l1 [p' [l' [l2 [Hdiv Heqv]]]]] | Contra].
     - remember (l1 ++ (p :: p' :: l') :: l2) as ls'.
@@ -167,7 +167,7 @@ Proof.
         simpl; apply perm_skip.
         apply Permutation_app_comm. }
       destruct Hls as [HFa Hdis].
-      destruct (group_pterms_impl l ls') as [ls_res [Hgp_res HPerm_res]].
+      destruct (group_pterms_acc l ls') as [ls_res [Hgp_res HPerm_res]].
       { split; subst ls'.
       - apply (Forall_perm _ (((p :: p' :: l') :: l1) ++ l2)); auto.
         apply (Forall_perm _ _ (((p' :: l') :: l1) ++ l2)) in HFa; subst ls; auto.
@@ -186,6 +186,8 @@ Proof.
         * etransitivity; eassumption.
       }
       exists ls_res; split; [ assumption |].
+      rewrite Permutation_app_comm in HPerm_res.
+      rewrite Permutation_app_comm.
       etransitivity; [| eassumption ]; subst ls ls'.
       transitivity ((l ++ [p]) ++ List.concat (l1 ++ (p' :: l') :: l2));
       [ apply Permutation_app; auto using Permutation_cons_append |].
@@ -193,7 +195,7 @@ Proof.
       apply Permutation_app; auto; simpl.
       apply group_pter_impl_perm_helper.
     - destruct Hls as [HFa Hdis].
-      destruct (group_pterms_impl l ([p]::ls)) as [ls_res [Hgp_res HPerm_res]].
+      destruct (group_pterms_acc l ([p]::ls)) as [ls_res [Hgp_res HPerm_res]].
       { split.
         - constructor; auto.
         - apply (disjoint_cons _ p _ []); auto.
@@ -203,6 +205,8 @@ Proof.
           * reflexivity.
       }
       exists ls_res; split; [ assumption |].
+      rewrite Permutation_app_comm in HPerm_res.
+      rewrite Permutation_app_comm.
       etransitivity; [| eassumption ].
       transitivity ((l ++ [p]) ++ List.concat ls);
       [ apply Permutation_app; auto using Permutation_cons_append |].
@@ -210,15 +214,64 @@ Proof.
       apply Permutation_app; auto; simpl.
 Defined.
 
-Definition group_pterms (l : list pterm) : 
+Fixpoint group_pterms (l : list pterm) {struct l} :
     { ls' : list (list pterm) | grouped_pterms ls' /\
         Permutation l (List.concat ls')  }.
 Proof.
-  assert (grouped_pterms []) by (split; constructor).
-  specialize (group_pterms_impl l [] H); simpl; intros res.
-  rewrite app_nil_r in res.
-  apply res.
+  destruct l; [ exists []; split; repeat constructor |].
+  Show Proof.
+  destruct (group_pterms l) as [ls_res [Hgp_res  HPerm_res]].
+  destruct (Disjoint_covered_dec ls_res p Hgp_res)
+    as [[l1 [p' [l' [l2 [Hdiv Heqv]]]]] | Contra];
+  destruct Hgp_res as [HFaeqv_res HDis_res].
+  - remember (l1 ++ (p :: p' :: l') :: l2) as ls'.
+    assert (Perm1: Permutation (((p :: p' :: l') :: l1) ++ l2) ls').
+    { eapply Permutation_trans; subst ls'; [| apply Permutation_app_comm ].
+      simpl; apply perm_skip.
+      apply Permutation_app_comm. }
+    assert (Perm2: Permutation (l1 ++ (p' :: l') :: l2) (((p' :: l') :: l1) ++ l2)).
+    { eapply Permutation_trans; [ apply Permutation_app_comm |].
+      simpl; apply perm_skip.
+      apply Permutation_app_comm. }
+    exists ls'.
+    { repeat split; subst ls_res ls'.
+    - apply (Forall_perm _ (((p :: p' :: l') :: l1) ++ l2)); auto.
+      apply (Forall_perm _ _ (((p' :: l') :: l1) ++ l2)) in HFaeqv_res; auto.
+      inv HFaeqv_res; simpl.
+      constructor; auto.
+      constructor; [| symmetry ]; assumption.
+    - eapply Disjoint_perm; eauto.
+      eapply Disjoint_perm in HDis_res; [| apply Perm2 ].
+      inv HDis_res;
+      [ assert (l1=[] /\ l2=[]) as [? ?];
+        [ destruct l1, l2; try discriminate; auto |]; subst;
+        rewrite app_nil_r; constructor;
+        constructor; [| symmetry ]; auto |].
+      simpl; econstructor; eauto.
+      * constructor; [| symmetry ]; auto.
+      * etransitivity; eassumption.
+    - rewrite Permutation_app_comm in HPerm_res.
+      rewrite Permutation_app_comm; simpl; simpl in HPerm_res.
+      apply perm_skip, HPerm_res.
+    }
+  - exists ([p]::ls_res).
+    { repeat split.
+    - constructor; [ constructor | assumption ].
+    - apply (disjoint_cons _ p _ []); auto; try reflexivity.
+      intro HIn.
+      pose proof (In_witness _ _ HIn) as [l1 [l2 Hdiv]].
+      apply Contra. repeat eexists; eauto; reflexivity.
+    - simpl; apply perm_skip, HPerm_res.
+    }
 Defined.
+
+(* Definition group_pterms (l : list pterm) : *)
+(*     { ls' : list (list pterm) | grouped_pterms ls' /\ *)
+(*         Permutation l (List.concat ls')  }. *)
+(* Proof. *)
+(*   assert (grouped_pterms []) by (split; constructor). *)
+(*   apply (group_pterms_acc l [] H). *)
+(* Defined. *)
 
 Lemma group_pterms_permutates l ls :
   ∀ H,
@@ -228,70 +281,24 @@ Proof.
   intros [_ H] _; apply H.
 Qed.
 
-Lemma grouping_exists l :
-  ∃ ls, grouped_pterms ls /\ List.concat ls ≡ᵥ l /\
-  (* Permutation (List.concat ls) l /\ *)
-  (* ↑ this can be difficult to prove, but probably essential *)
-  (∀ st, grouped_eval_pl st ls = eval_pterm_list st l).
-(* Extend this lemma to assure well formedness and no zero powers for ls *)
+Lemma group_pterms_wf_preserving l :
+  ∀ ls,
+  (proj1_sig (group_pterms l)) = ls →
+  pterm_list_well_formed l →
+  Forall pterm_list_well_formed ls.
 Proof.
-  induction l as [| [c v] l']; unfold grouped_pterms.
-  { exists []; split; [ split | split ]; auto. }
-  destruct IHl' as [ls [[HFa Hdis] [Hvareqv Hlseqv]]]; auto.
-  destruct (Disjoint_covered_dec ls (PTerm c v))
-      as [[l1 [p' [l [l2 [Hdiv Heqv]]]]] | Contra]; auto.
-  + subst ls; exists (l1 ++ (PTerm c v::p'::l) :: l2).
-    assert (Perm1: Permutation (((PTerm c v :: p' :: l) :: l1) ++ l2)
-                               (l1 ++ (PTerm c v :: p' :: l) :: l2)).
-    { eapply Permutation_trans; [| apply Permutation_app_comm ].
-      simpl; apply perm_skip.
-      apply Permutation_app_comm. }
-    assert (Perm2: Permutation (l1 ++ (p' :: l) :: l2) (((p' :: l) :: l1) ++ l2)).
-    { eapply Permutation_trans; [ apply Permutation_app_comm |].
-      simpl; apply perm_skip.
-      apply Permutation_app_comm. }
-    repeat split.
-    - apply (Forall_perm _ (((PTerm c v :: p' :: l) :: l1) ++ l2)); auto.
-      apply (Forall_perm _ _ (((p' :: l) :: l1) ++ l2)) in HFa; auto.
-      inv HFa; simpl.
-      constructor; auto.
-      constructor; [| symmetry ]; assumption.
-    - eapply Disjoint_perm; eauto.
-      eapply Disjoint_perm in Hdis; [| apply Perm2 ].
-      inv Hdis;
-      [ assert (l1=[] /\ l2=[]) as [? ?];
-        [ destruct l1, l2; try discriminate; auto |]; subst;
-        rewrite app_nil_r; constructor;
-        constructor; [| symmetry ]; auto |].
-      simpl; econstructor; eauto.
-      * constructor; [| symmetry ]; auto.
-      * etransitivity; eassumption.
-    - intro vars.
-      symmetry in Perm1.
-      rewrite (vlequiv_list_perm _ _ Perm1).
-      remember (p' :: l) as l''.
-      simpl.
-      rewrite <- Hvareqv.
-      subst l''.
-      now rewrite (vlequiv_list_perm _ _ Perm2).
-    - intro st; simpl.
-      rewrite <- Hlseqv.
-      erewrite grouped_eval_perm; [| symmetry; exact Perm1 ].
-      symmetry.
-      erewrite grouped_eval_perm; [| exact Perm2 ].
-      simpl; lia.
-  + exists ([PTerm c v] :: ls).
-    repeat split.
-    - constructor; auto.
-    - apply (disjoint_cons _ (PTerm c v) _ []); auto.
-      * intro HIn.
-        pose proof (In_witness _ _ HIn) as [l1 [l2 Hdiv]].
-        apply Contra. repeat eexists; eauto; reflexivity.
-      * reflexivity.
-    - intros vars; simpl.
-      now rewrite Hvareqv.
-    - intros st; simpl; rewrite Hlseqv; lia.
-Qed.
+  induction l;
+  [ unfold group_pterms; simpl; intros; subst; auto |].
+  simpl; intros; subst.
+  destruct (group_pterms l) as [ls [Hgp Hperm]]; simpl.
+  destruct (Disjoint_covered_dec ls a Hgp).
+  - repeat destruct s as [? s]; [ idtac ].
+    destruct Hgp as [HFaeqv HDis]; simpl.
+    subst ls.
+
+    apply Forall_app.
+
+
 
 Lemma grouping_lemma :
   ∀ l1 l2,
