@@ -2,7 +2,7 @@ Require Import Utf8.
 From Coq Require Import Recdef Wf_nat.
 From Coq Require Import Bool.Bool Lia Lists.List Strings.String.
 From Coq Require Import ZArith ZArith.Int.
-Require Import Syntax Utils ClearZP.
+Require Import Syntax Utils BasicProps Algorithm.
 
 Import ListNotations.
 

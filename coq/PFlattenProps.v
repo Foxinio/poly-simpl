@@ -1,5 +1,5 @@
 Require Import Utf8.
-Require Import Syntax Utils PFlatten.
+Require Import Syntax Utils BasicProps Algorithm.
 
 From Coq Require Import Lists.List Lia.
 

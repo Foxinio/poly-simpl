@@ -3,7 +3,7 @@ Set Warnings "-notation-overridden,-parsing,-deprecated-hint-without-locality".
 From Coq Require Import Lia Lists.List Strings.String Recdef Wf_nat.
 Import ListNotations.
 
-Require Import Syntax Utils Reconstruct ClearZP.
+Require Import Syntax Utils BasicProps Algorithm.
 
 Lemma reconstruct_var_pow_correct st x n :
   aeval st (reconstruct_var_pow x n) = (st x ^ Z.of_nat n)%Z.

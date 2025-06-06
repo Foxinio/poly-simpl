@@ -5,16 +5,8 @@ From Coq.Lists Require Import List ListDec.
 Require Import Coq.Classes.Equivalence.
 Import ListNotations.
 
-From PolySimpl Require Import Syntax Utils VarList.
-From PolySimpl Require Import PFlatten PFlattenProps.
-From PolySimpl Require Import ClearZP ClearZPProps.
-From PolySimpl Require Import ReduceMonom ReduceMonomProps.
-
-Fixpoint grouped_eval_pl (st : state) (l : list (list pterm)) :=
-  match l with
-  | [] => 0%Z
-  | ls :: l' => (eval_pterm_list st ls + grouped_eval_pl st l')%Z
-  end.
+From PolySimpl Require Import Syntax Utils VarList BasicProps.
+From PolySimpl Require Import PFlattenProps ClearZPProps ReduceMonomProps.
 
 Lemma grouped_eval_pl_correct l st :
   grouped_eval_pl st l = eval_pterm_list st (List.concat l).
@@ -23,15 +15,6 @@ Proof.
   now rewrite eval_pterm_list_homo, IHl.
 Qed.
 
-Definition grouped_eval_equiv l1 l2 :=
-  ∀ st, grouped_eval_pl st l1 = grouped_eval_pl st l2. 
-Hint Unfold grouped_eval_equiv : core.
-Notation "a '≡ₚ' b" := (grouped_eval_equiv a b) (at level 70).
-
-Definition pterm_equiv (p1 p2 : pterm) :=
-  let '(PTerm _ v1) := p1 in
-  let '(PTerm _ v2) := p2 in
-  v1 = v2.
 Definition pterm_equiv_dec :
   ∀ l1 l2 : pterm, {pterm_equiv l1 l2} + {¬ pterm_equiv l1 l2}.
 Proof.
@@ -51,32 +34,6 @@ Proof.
   | intros [_ v1] [_ v2] [_ v3] Eq12 Eq23]; auto;
   now transitivity v2.
 Qed.
-
-Inductive equiv_list : list pterm → Prop :=
-  | EL_Single a :
-      equiv_list [a]
-  | EL_Cons a b l :
-      equiv_list (a :: l) →
-      pterm_equiv a b →
-      equiv_list (b :: a :: l).
-Hint Constructors equiv_list : core.
-
-Inductive Disjoint : list (list pterm) → Prop :=
-  | disjoint_nil : Disjoint []
-  | disjoint_single l :
-      equiv_list l →
-      Disjoint [l]
-  | disjoint_cons p p' (l l' : list pterm) (ls : list (list pterm)) :
-      equiv_list (p::l) →
-      ~In (p'::l') ls →
-      pterm_equiv p p' →
-      Disjoint ls →
-      Disjoint ((p::l)::ls).
-Hint Constructors Disjoint : core.
-
-Definition grouped_pterms (l : list (list pterm)) :=
-  Forall equiv_list l /\ Disjoint l.
-Hint Unfold grouped_pterms : core.
 
 Fixpoint Disjoint_covered_dec (ls : list (list pterm)) (p : pterm) :
   grouped_pterms ls →
@@ -166,6 +123,76 @@ Proof.
     - simpl; apply perm_skip, HPerm_res.
     }
 Defined.
+
+Lemma grouped_eval_pl_app st :
+  ∀ ls ls',
+  grouped_eval_pl st (ls++ls') =
+  (grouped_eval_pl st ls + grouped_eval_pl st ls')%Z.
+Proof.
+  induction ls; simpl; auto; intros.
+  now rewrite <- Z.add_assoc, IHls.
+Qed.
+
+Lemma grouped_eval_pl_perm st :
+  ∀ ls ls',
+  Permutation ls ls' →
+  grouped_eval_pl st ls = grouped_eval_pl st ls'.
+Proof.
+  strong_list_induction.
+  intros n' IH ls ls' Hlen Hperm.
+  destruct ls as [| l ls], ls' as [| l' ls']; auto;
+  [ apply Permutation_nil_cons in Hperm
+  | symmetry in Hperm; apply Permutation_nil_cons in Hperm |];
+  try now inv Hperm.
+  pose proof (Permutation_vs_cons_inv Hperm) as [l1 [l2 Hl12]].
+  rewrite Hl12; rewrite grouped_eval_pl_app; simpl.
+  rewrite Z.add_comm, <- Z.add_assoc.
+  f_equal.
+  rewrite Hl12 in Hperm.
+  symmetry in Hperm.
+  apply Permutation_cons_app_inv in Hperm.
+  rewrite Z.add_comm, <- grouped_eval_pl_app.
+  rewrite Hl12, length_app in Hlen.
+  simpl in Hlen.
+  apply (IH (List.length ls' + List.length l1 + List.length l2));
+  try (simpl in *; subst; try rewrite length_app; lia).
+  symmetry; apply Hperm.
+Qed.
+
+
+Lemma group_pterms_plequiv_preserving l :
+  ∀ ls,
+  (proj1_sig (group_pterms l)) = ls →
+  (* group_pterms l = exist _ ls H → *)
+  ∀ st, eval_pterm_list st l = grouped_eval_pl st ls.
+Proof.
+  induction l as [| p l];
+  [ unfold group_pterms; simpl; intros; subst; auto |].
+  simpl; intros; subst.
+  destruct (group_pterms l) as [ls' [Hgp Hperm]]; simpl.
+  destruct (Disjoint_covered_dec ls' p Hgp).
+  - destruct s as [l1 s], s as [p' s], s as [l' s], s as [l2 s],
+             s as [Hgp_res Hperm_res], Hgp as [HFaeqv HDis]; simpl.
+    specialize (IHl ls'); simpl in IHl.
+    auto_specialize IHl.
+    specialize (IHl st); simpl in IHl.
+    rewrite IHl.
+    rewrite (grouped_eval_pl_perm _ (l1 ++ _) (((p :: p' :: l') :: l1) ++ l2)); auto.
+    2: { eapply Permutation_trans; [ apply Permutation_app_comm |].
+      simpl; apply perm_skip.
+      apply Permutation_app_comm. }
+    rewrite (grouped_eval_pl_perm _ ls' (((p' :: l') :: l1) ++ l2)).
+    2: { subst ls'. eapply Permutation_trans; [ apply Permutation_app_comm |].
+      simpl; apply perm_skip.
+      apply Permutation_app_comm. }
+    simpl in *.
+    repeat rewrite grouped_eval_pl_app; lia.
+  - destruct Hgp as [HFaeqv HDis]; simpl.
+    specialize (IHl ls'); simpl in IHl.
+    auto_specialize IHl.
+    rewrite IHl; lia.
+Qed.
+
 
 Lemma group_pterms_permutates l ls :
   ∀ H,

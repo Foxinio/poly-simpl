@@ -3,13 +3,6 @@ From PolySimpl Require Export Maps.
 From Coq Require Export Lists.List Strings.String.
 From Coq Require Export ZArith.Int ZArith.
 
-Require Import Utils.
-
-Import Int.
-Import ListNotations.
-
-Open Scope Int_scope.
-
 Definition state := total_map Z.
 
 Inductive aexp : Type :=
@@ -49,10 +42,6 @@ Open Scope com_scope.
 
 Definition var_list := list (string * nat).
 
-Inductive pterm :=
-  | PTerm (c : Z) (vars : var_list).
-
-
 Fixpoint aeval (st : state) (a : aexp) : Z :=
   match a with
   | ANum z => z
@@ -61,48 +50,4 @@ Fixpoint aeval (st : state) (a : aexp) : Z :=
   | <{a1 - a2}> => (aeval st a1) - (aeval st a2)
   | <{a1 * a2}> => (aeval st a1) * (aeval st a2)
   end.
-
-Definition pow (st : state) '(x, n) : Z :=
-  Z.pow (st x) (Z.of_nat n).
-
-Definition eval_pterm (st : state) '(PTerm c vars) : Z :=
-  fold_left Z.mul (map (pow st) vars) c.
-
-Fixpoint eval_pterm_list (st : state) (l : list pterm) : Z :=
-  match l with
-  | [] => 0_
-  | c :: l' => eval_pterm_list st l' + eval_pterm st c
-  end.
-
-Definition aequiv (a1 a2 : aexp) : Prop :=
-  forall (st : state),
-    aeval st a1 = aeval st a2.
-Hint Unfold aequiv : core.
-
-Notation "a '≡' b" :=  (aequiv a b) (at level 70).
-
-Definition ptequiv (l1 l2 : list pterm) : Prop :=
-  forall (st : state),
-    eval_pterm_list st l1 = eval_pterm_list st l2.
-Hint Unfold ptequiv : core.
-
-Notation "a '≡ₗ' b" :=  (ptequiv a b) (at level 70).
-
-Definition asimpt a l :=
-  forall st : state, aeval st a = eval_pterm_list st l.
-Hint Unfold asimpt : core.
-
-Notation "a '≲ₗ' l" := (asimpt a l) (at level 70).
-
-Definition Correctness (f : aexp → aexp) :=
-  forall a : aexp, a ≡ f a.
-Hint Unfold Correctness : core.
-
-Definition Canonality (f : aexp → aexp) :=
-  forall a1 a2, a1 ≡ a2 → f a1 = f a2.
-Hint Unfold Canonality : core.
-
-Definition pterm_list_well_formed (l : list pterm) :=
-  Forall (λ '(PTerm _ vars), sorted_uniq vars) l.
-Hint Unfold pterm_list_well_formed : core.
 

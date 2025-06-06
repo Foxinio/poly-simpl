@@ -1,8 +1,8 @@
 Require Import Utf8.
 From Coq Require Import ZArith.Int ZArith Lia.
-From Coq Require Import Strings.String Lists.List Sorting.Permutation.
-Require Import AsciiProps.
-
+From Coq Require Import Strings.String Lists.List Sorting.Permutation Sets.Relations_1.
+Require Import Coq.Classes.Equivalence.
+Require Import AsciiProps BasicProps.
 
 Import Int.
 Open Scope Int_scope.
@@ -115,17 +115,6 @@ Admitted.
 
 Lemma string_ltb_irrefl a : (a <? a)%string = false.
 Admitted.
-
-Inductive sorted_uniq : list (string*nat) -> Prop :=
-| sorted_nil:
-    sorted_uniq []
-| sorted_1: forall x,
-    sorted_uniq [x]
-| sorted_cons: forall x y l,
-    (fst x <? fst y)%string = true ->
-    sorted_uniq (y :: l) ->
-    sorted_uniq (x :: y :: l).
-Hint Constructors sorted_uniq : core.
 
 Lemma sorted_uniq_cons l a :
   sorted_uniq (a :: l) → sorted_uniq l.
@@ -301,4 +290,118 @@ Proof.
   - destruct (IHl HIn) as [l1 [l2 Heq]].
     exists (a0::l1), l2; subst; auto.
 Qed.
+
+Lemma not_Exists_not_Forall {A} l P :
+  (∀ a : A, { P a } + { ~P a }) →
+  ~Exists (λ a, ~P a) l → Forall P l.
+Proof.
+  induction l; simpl; intros; [ constructor |].
+  destruct (Exists_dec (λ a, ~P a) l).
+  { intro x; destruct (X x).
+    - right; intro H0; apply H0, p.
+    - left; intro H0; apply n, H0. }
+  - exfalso; apply H.
+    constructor; apply e.
+  - constructor; [| (apply IHl; [ apply X | apply n]) ].
+    destruct (X a); [ assumption |].
+    exfalso; apply H; constructor; apply n0.
+Qed.
+
+Lemma nIn_app {A} l1 l2 (a : A) :
+¬ In a (l1 ++ l2) → ~In a l1 /\ ~In a l2.
+Proof.
+  intro H; split; intro; apply H, in_or_app.
+  - left; apply H0.
+  - right; apply H0.
+Qed.
+
+Lemma cmp_vars_antisym :
+  ∀ v1 v2, cmp_vars v1 v2 = CompOpp (cmp_vars v2 v1). 
+Proof.
+  induction v1, v2; intuition.
+  simpl.
+  rewrite compare_antisym.
+  destruct (compare a a0); simpl; intuition.
+  destruct (b <? b0) eqn:?, (b0 <? b) eqn:?; unfold CompOpp; auto.
+  apply Nat.ltb_lt in Heqb1.
+  apply Nat.ltb_lt in Heqb0.
+  lia.
+Qed.
+
+Lemma cmp_vars_eq_iff : ∀ v1 v2 : list (string*nat),
+  cmp_vars v1 v2 = Eq → v1 = v2.
+Proof.
+  strong_list_induction.
+  intros n' IH l1 l2 Hlen Hcmp.
+  destruct l1 as [| [x n] l1'] eqn:?, l2 as [| [y m] l2'] eqn:?; auto;
+  try now inversion Hcmp.
+  simpl in Hcmp.
+  destruct (x ?= y)%string eqn:?; try discriminate.
+  pose proof (String.compare_eq_iff _ _ Heqc).
+  destruct (n <? m) eqn:?; try discriminate;
+  destruct (m <? n) eqn:?; try discriminate.
+  pose proof (nat_lt_antisym _ _ Heqb Heqb0). 
+  f_equal; [ now subst |].
+  simpl in Hlen.
+  apply (IH (len2 (l1', l2'))); auto; simpl; lia.
+Qed.
+
+
+Lemma cmp_vars_refl v : cmp_vars v v = Eq.
+Admitted.
+
+Lemma cmp_vars_refl_nlt :
+  ∀ v, cmp_vars v v <> Lt.
+Proof.
+  intros v C.
+  rewrite cmp_vars_antisym in C; unfold CompOpp in C; simpl in C.
+  rewrite cmp_vars_refl in C; discriminate.
+Qed.
+
+Lemma canon_pterm_cons p l :
+  ~In p l → canon_pterm l → canon_pterm (p :: l).
+Proof.
+  intros H Hcanon.
+  eapply CP_cons; eauto.
+  destruct p; reflexivity.
+Qed.
+
+Lemma canon_pterm_single a : canon_pterm [a].
+Proof.
+  apply canon_pterm_cons; auto.
+Qed.
+
+Lemma cmp_vars_trans v1 v2 v3 :
+  cmp_vars v1 v2 = Lt → cmp_vars v2 v3 = Lt → cmp_vars v1 v3 = Lt.
+Proof.
+Admitted.
+
+Instance Transitive_pterm_le : Transitive pterm_le.
+Proof.
+  intros [c1 v1] [c2 v2] [c3 v3]; unfold pterm_le; simpl;
+  intros H12 H23; clear c1 c2 c3.
+Admitted.
+
+Lemma Rel1_Transitive_pterm_le : Relations_1.Transitive pterm_le.
+Proof.
+  intros p1 p2 p3 H12 H23.
+  transitivity p2; auto.
+Qed.
+
+Lemma sorted_shadow :
+  ∀ l'' c1 c2 v1 v2,
+  sorted (PTerm c1 v1 :: PTerm c2 v2 :: l'') →
+  sorted (PTerm c1 v1 ::  l'').
+Proof.
+  intros.
+Admitted.
+
+Lemma sorted_const_invariant :
+  ∀ l'' c1 c2 c3 v1 v2,
+  sorted (PTerm c1 v1 :: PTerm c2 v2 :: l'') →
+  sorted (PTerm c1 v1 :: PTerm c3 v2 ::  l'').
+Proof.
+Admitted.
+
+
 
