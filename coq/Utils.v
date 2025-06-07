@@ -1,8 +1,8 @@
 Require Import Utf8.
-From Coq Require Import ZArith.Int ZArith Lia.
+From Coq Require Import ZArith.Int ZArith Lia Arith.
 From Coq Require Import Strings.String Lists.List Sorting.Permutation Sets.Relations_1.
-Require Import Coq.Classes.Equivalence.
-Require Import AsciiProps BasicProps.
+From Coq Require Import Classes.Equivalence Bool.Bool Sorting.Sorted.
+Require Import AsciiProps BasicProps Syntax.
 
 Import Int.
 Open Scope Int_scope.
@@ -60,6 +60,18 @@ Ltac strong_list_induction :=
       | apply (well_founded_induction lt_wf); subst ]
   end.
 
+
+Hint Resolve Nat.ltb_spec0 Z.ltb_spec0 Nat.leb_spec0 Z.leb_spec0
+        Nat.eqb_spec Z.eqb_spec String.eqb_spec : bdestruct.
+
+Ltac bdestruct X :=
+  let H := fresh in let e := fresh "e" in
+   evar (e: Prop);
+   assert (H: reflect e X); subst e;
+    [ auto with bdestruct
+    | destruct H as [H|H];
+       [ | try first [apply not_lt in H | apply not_le in H]]].
+
 Ltac destruct_let :=
   match goal with
   | |- context [ let _ := ?e in _ ] =>
@@ -84,6 +96,41 @@ Ltac auto_specialize H :=
       clear HAsmpt
   end.
 
+Inductive StringLt : string → string → Prop :=
+  | SLt_nil c s : StringLt ""%string (String c s)
+  | SLt_ascii c1 c2 s1 s2 :
+      Ascii.compare c1 c2 = Lt →
+      StringLt (String c1 s1) (String c2 s2)
+  | SLt_cons c1 c2 s1 s2 :
+      Ascii.compare c1 c2 = Eq →
+      StringLt s1 s2 →
+      StringLt (String c1 s1) (String c2 s2).
+
+Lemma StringLt_ltb_iff a b :
+  StringLt a b ↔ (a <? b)%string = true.
+Proof.
+  split.
+{ intro. enough ((a ?= b)%string = Lt);
+    [ unfold ltb; now rewrite H0 |].
+  induction H.
+  - auto.
+  - unfold compare.
+    now rewrite H.
+  - cbn.
+    now rewrite H, IHStringLt.
+} { intro H.
+  assert (a ?= b = Lt)%string;
+  [ unfold ltb in H; destruct (a ?= b)%string; auto; discriminate |].
+  clear H.
+  generalize dependent b; induction a; simpl; intros; auto.
+  - destruct b; [ discriminate | constructor ].
+  - destruct b; [ discriminate |].
+    destruct (Ascii.compare a a1) eqn:?.
+    + pose proof (Ascii.compare_eq_iff _ _ Heqc).
+      apply SLt_cons; auto.
+    + apply SLt_ascii; auto.
+    + discriminate. }
+Qed.
 
 Lemma ltb_trans a : forall b c,
   (a <? b)%string = true →
@@ -110,8 +157,26 @@ Proof.
       now rewrite Haa1.
 Qed.
 
+Lemma compare_lt_trans a : forall b c,
+  (a ?= b)%string = Lt →
+  (b ?= c)%string = Lt →
+  (a ?= c)%string = Lt.
+Proof.
+  intros b c Hab Hbc.
+  assert ((a <? b)%string = true) by (unfold ltb; now rewrite Hab).
+  assert ((b <? c)%string = true) by (unfold ltb; now rewrite Hbc).
+  enough (a <? c = true)%string.
+  - unfold ltb in H1; simpl in H1.
+    destruct (a ?= c)%string; try now discriminate.
+    reflexivity.
+  - eapply ltb_trans; eauto.
+Qed.
+
 Lemma string_compare_refl a : (a ?= a = Eq)%string.
-Admitted.
+Proof.
+  induction a; auto; simpl.
+  now rewrite ascii_compare_refl.
+Qed.
 
 Lemma string_ltb_irrefl a : (a <? a)%string = false.
 Admitted.
@@ -172,12 +237,15 @@ Definition cross {A B C : Type} (f : A -> B -> C)
     (l1 : list A) (l2 : list B) : list C :=
   List.concat (map (fun a => map (f a) l2) l1).
 
-Lemma nat_lt_antisym (x y : nat) :
+Lemma nat_ltb_antisym (x y : nat) :
   x <? y = false →
   y <? x = false →
   x = y.
 Proof.
-Admitted.
+  intros.
+  apply Nat.ltb_ge in H, H0.
+  apply Nat.le_antisymm; auto.
+Qed.
 
 Lemma lt_antisym (x y : string) :
   (ltb x y)%string = false →
@@ -211,9 +279,15 @@ Lemma fold_left_mul_acc (l : list Z) : ∀ a b : Z,
 Proof.
   induction l; auto; simpl; intros.
   rewrite IHl.
-  f_equal.
-  repeat rewrite <- Z.mul_assoc.
-  replace (a*b)%Z with (b*a)%Z; [ auto | now rewrite Z.mul_comm ].
+  f_equal. lia.
+Qed.
+
+Lemma fold_left_add_acc (l : list Z) : ∀ a b : Z,
+  (fold_left Z.add l a + b)%Z = fold_left Z.add l (a + b)%Z.
+Proof.
+  induction l; simpl; intros; auto.
+  rewrite IHl.
+  f_equal. lia.
 Qed.
 
 Lemma fold_left_mul_0 (l : list Z) : fold_left Z.mul l 0%Z = 0%Z.
@@ -340,7 +414,7 @@ Proof.
   pose proof (String.compare_eq_iff _ _ Heqc).
   destruct (n <? m) eqn:?; try discriminate;
   destruct (m <? n) eqn:?; try discriminate.
-  pose proof (nat_lt_antisym _ _ Heqb Heqb0). 
+  pose proof (nat_ltb_antisym _ _ Heqb Heqb0). 
   f_equal; [ now subst |].
   simpl in Hlen.
   apply (IH (len2 (l1', l2'))); auto; simpl; lia.
@@ -348,7 +422,10 @@ Qed.
 
 
 Lemma cmp_vars_refl v : cmp_vars v v = Eq.
-Admitted.
+Proof.
+  induction v as [| [x n] v]; auto; simpl.
+  now rewrite string_compare_refl, Nat.ltb_irrefl, IHv.
+Qed.
 
 Lemma cmp_vars_refl_nlt :
   ∀ v, cmp_vars v v <> Lt.
@@ -371,16 +448,234 @@ Proof.
   apply canon_pterm_cons; auto.
 Qed.
 
+Lemma nat_antisym a b :
+  a >= b → b >= a → a = b.
+Proof.
+  lia.
+Qed.
+
+Ltac find_equalities :=
+  let H1 := fresh in let H2 := fresh in
+  match goal with
+  | [ H1: ?a >= ?b, H2: ?b >= ?a |- _] =>
+      pose proof (nat_antisym _ _ H1 H2); subst a
+  end.
+
+Inductive LtVars : var_list → var_list → Prop :=
+  | LtVars_nil x n v : LtVars ((x,n)::v) []
+  | LtVars_end_str (x y : string) (n m : nat) v1 v2 :
+      (x ?= y)%string = Lt →
+      LtVars ((x, n)::v1) ((y,m)::v2)
+  | LtVars_end_nat x y n m v1 v2 :
+      (x ?= y)%string = Eq →
+      n < m →
+      LtVars ((x, n)::v1) ((y,m)::v2)
+  | LtVars_cons x y n m v1 v2 :
+      (x ?= y)%string = Eq →
+      n = m →
+      LtVars v1 v2 →
+      LtVars ((x, n)::v1) ((y,m)::v2).
+
+Inductive GtVars : var_list → var_list → Prop :=
+  | GtVars_nil x n v : GtVars [] ((x,n)::v)
+  | GtVars_end_str (x y : string) (n m : nat) v1 v2 :
+      (x ?= y)%string = Gt →
+      GtVars ((x, n)::v1) ((y,m)::v2)
+  | GtVars_end_nat x y n m v1 v2 :
+      (x ?= y)%string = Eq →
+      n > m →
+      GtVars ((x, n)::v1) ((y,m)::v2)
+  | GtVars_cons x y n m v1 v2 :
+      (x ?= y)%string = Eq →
+      n = m →
+      GtVars v1 v2 →
+      GtVars ((x, n)::v1) ((y,m)::v2).
+
+Inductive LeVars : var_list → var_list → Prop :=
+  | LeVars_nil v : LeVars v []
+  | LeVars_lt_str (x y : string) (n m : nat) v1 v2 :
+      (x ?= y)%string = Lt →
+      LeVars ((x, n)::v1) ((y,m)::v2)
+  | LeVars_end_nat x y n m v1 v2 :
+      (x ?= y)%string = Eq →
+      n < m →
+      LeVars ((x, n)::v1) ((y,m)::v2)
+  | LeVars_cons x y n m v1 v2 :
+      (x ?= y)%string = Eq →
+      n = m →
+      LeVars v1 v2 →
+      LeVars ((x, n)::v1) ((y,m)::v2).
+Hint Constructors LtVars : core.
+
+Lemma LtVars_cmpVars_iff v1 v2 : LtVars v1 v2 ↔ cmp_vars v1 v2 = Lt.
+Proof.
+  split.
+  - induction 1; simpl; auto.
+    + now rewrite H.
+    + apply (reflect_iff _ _ (Nat.ltb_spec0 n m)) in H0.
+      now rewrite H, H0.
+    + subst n; now rewrite H, Nat.ltb_irrefl, IHLtVars.
+  - revert v1 v2.
+    induction v1 as [| [x n] v1]; intros [| [y m] v2] HLt;
+    try now inv HLt; try now constructor.
+    simpl in HLt.
+    destruct (x ?= y)%string eqn:?.
+    + bdestruct (n <? m); [ apply LtVars_end_nat; auto |].
+      bdestruct (m <? n); try now inv HLt.
+      pose proof (nat_antisym _ _ H H0); subst n.
+      apply LtVars_cons; auto.
+    + apply LtVars_end_str; auto.
+    + inv HLt.
+Qed.
+
+Lemma nat_gt_symm_lt n m : n > m → m < n.
+Proof.
+  intro H; apply H.
+Qed.
+
+Lemma GtVars_cmpVars_iff v1 v2 : GtVars v1 v2 ↔ cmp_vars v1 v2 = Gt.
+Proof.
+  split.
+  - induction 1; simpl; auto.
+    + now rewrite H.
+    + remember H0 as H1; clear HeqH1;
+      apply (reflect_iff _ _ (Nat.ltb_spec0 m n)) in H0.
+      assert (n >= m) by lia.
+      apply nat_gt_symm_lt in H1.
+      apply (reflect_iff _ _ (Nat.leb_spec0 m n)) in H2.
+      now rewrite H, Nat.ltb_antisym, H2, H0.
+    + subst n; now rewrite H, Nat.ltb_irrefl, IHGtVars.
+  - revert v1 v2.
+    induction v1 as [| [x n] v1]; intros [| [y m] v2] HGt;
+    try now inv HGt; try now constructor.
+    simpl in HGt.
+    destruct (x ?= y)%string eqn:?.
+    + bdestruct (n <? m); [ inv HGt |].
+      bdestruct (m <? n); [ apply GtVars_end_nat; auto |].
+      pose proof (nat_antisym _ _ H H0); subst n.
+      apply GtVars_cons; auto.
+    + inv HGt.
+    + apply GtVars_end_str; auto.
+Qed.
+
+Lemma nat_le_implications n m :
+  n < m → n <? m = true /\ m <? n = false.
+Proof.
+  revert m; induction n; simpl; intros; auto; split.
+  - destruct m; cbn; auto; inv H.
+  - destruct m; cbn; auto; inv H.
+  - destruct m; inv H; cbn in *; [ apply Nat.leb_refl |].
+    edestruct (IHn m) as [H _]; [| apply H ].
+    lia.
+  - destruct m; inv H.
+    + rewrite Nat.ltb_antisym; cbn.
+      destruct (IHn (S (S n))) as [H _]; [ lia | ].
+      cbn in H; now rewrite H.
+    + cbn.
+      destruct (IHn m) as [H H']; [ lia | ].
+      cbn in *.
+      destruct n; auto.
+Qed.
+
+Lemma LeVars_cmpVars_iff v1 v2 :
+  LeVars v1 v2 ↔ cmp_vars v1 v2 <> Gt.
+Proof.
+  split.
+{ induction 1; auto.
+  + destruct v as [| [? ?]]; simpl; intro; discriminate.
+  + simpl; rewrite H; intro; discriminate.
+  + simpl; rewrite H.
+    apply Nat.ltb_lt in H0; rewrite H0.
+    intro; discriminate.
+  + simpl; rewrite H, H0.
+    rewrite (Nat.ltb_irrefl m).
+    apply IHLeVars. }
+{ revert v2; induction v1 as [| [x n] v1]; auto; intros.
+  + destruct v2; simpl in H.
+    - constructor.
+    - exfalso; now apply H.
+  + simpl in *; destruct v2 as [| [y m] v2]; try now constructor.
+    destruct (x ?= y)%string eqn:?.
+    - bdestruct (n <? m).
+      * apply LeVars_end_nat; auto.
+      * bdestruct (m <? n); [ exfalso; now apply H |].
+        pose proof (nat_antisym _ _ H0 H1).
+        apply LeVars_cons; auto.
+    - apply LeVars_lt_str; auto.
+    - exfalso; now apply H. }
+Qed.
+
 Lemma cmp_vars_trans v1 v2 v3 :
   cmp_vars v1 v2 = Lt → cmp_vars v2 v3 = Lt → cmp_vars v1 v3 = Lt.
 Proof.
-Admitted.
+  intros H12 H23.
+  apply LtVars_cmpVars_iff in H12, H23.
+  apply LtVars_cmpVars_iff.
+  generalize dependent v3.
+  induction H12; intros; auto;
+  try now inv H23.
+  - destruct v3 as [| [z k] v3']; auto.
+    inv H23.
+    + pose proof (compare_lt_trans _ _ _ H H1).
+      apply LtVars_end_str; now apply H0.
+    + pose proof (compare_eq_iff _ _ H2); subst y.
+      apply LtVars_end_str; now apply H.
+    + pose proof (compare_eq_iff _ _ H4); subst y.
+      apply LtVars_end_str; now apply H.
+  - pose proof (compare_eq_iff _ _ H); subst y.
+    destruct v3 as [| [z k] v3']; auto.
+    inv H23.
+    + apply LtVars_end_str; now apply H2.
+    + pose proof (compare_eq_iff _ _ H3); subst x.
+      apply LtVars_end_nat; auto.
+      etransitivity; eauto.
+    + pose proof (compare_eq_iff _ _ H5); subst x.
+      apply LtVars_end_nat; auto.
+  - pose proof (compare_eq_iff _ _ H); subst y.
+    destruct v3 as [| [z k] v3']; auto.
+    inv H23.
+    + apply LtVars_end_str; now apply H2.
+    + pose proof (compare_eq_iff _ _ H3); subst x.
+      apply LtVars_end_nat; auto.
+    + pose proof (compare_eq_iff _ _ H5); subst x.
+      apply LtVars_cons; auto.
+Qed.
 
 Instance Transitive_pterm_le : Transitive pterm_le.
 Proof.
   intros [c1 v1] [c2 v2] [c3 v3]; unfold pterm_le; simpl;
   intros H12 H23; clear c1 c2 c3.
-Admitted.
+  apply LeVars_cmpVars_iff in H12, H23.
+  apply LeVars_cmpVars_iff.
+  generalize dependent v3.
+  induction H12; intros.
+  - inv H23; constructor.
+  - inv H23.
+    + constructor.
+    + pose proof (compare_lt_trans _ _ _ H H4).
+      apply LeVars_lt_str; auto.
+    + pose proof (compare_eq_iff _ _ H4); subst y.
+      apply LeVars_lt_str; auto.
+    + pose proof (compare_eq_iff _ _ H3); subst y.
+      apply LeVars_lt_str; auto.
+  - pose proof (compare_eq_iff _ _ H); subst y.
+    inv H23.
+    + constructor.
+    + apply LeVars_lt_str; auto.
+    + pose proof (compare_eq_iff _ _ H5); subst y.
+      pose proof (Nat.lt_trans _ _ _ H0 H6).
+      apply LeVars_end_nat; auto.
+    + pose proof (compare_eq_iff _ _ H4); subst y.
+      apply LeVars_end_nat; auto.
+  - pose proof (compare_eq_iff _ _ H); subst x n.
+    inv H23.
+    + constructor.
+    + apply LeVars_lt_str; auto.
+    + pose proof (compare_eq_iff _ _ H4); subst y0.
+      apply LeVars_end_nat; auto.
+    + pose proof (compare_eq_iff _ _ H3); subst y0.
+      apply LeVars_cons; auto.
+Qed.
 
 Lemma Rel1_Transitive_pterm_le : Relations_1.Transitive pterm_le.
 Proof.
@@ -394,14 +689,31 @@ Lemma sorted_shadow :
   sorted (PTerm c1 v1 ::  l'').
 Proof.
   intros.
-Admitted.
+  apply Sorted_LocallySorted_iff, StronglySorted_Sorted.
+  apply Sorted_LocallySorted_iff, Sorted_StronglySorted in H;
+    [| apply Rel1_Transitive_pterm_le ].
+  inv H. inv H2. inv H3.
+  constructor; auto.
+Qed.
 
 Lemma sorted_const_invariant :
   ∀ l'' c1 c2 c3 v1 v2,
   sorted (PTerm c1 v1 :: PTerm c2 v2 :: l'') →
   sorted (PTerm c1 v1 :: PTerm c3 v2 ::  l'').
 Proof.
-Admitted.
+  intros.
+  apply Sorted_LocallySorted_iff, StronglySorted_Sorted.
+  apply Sorted_LocallySorted_iff, Sorted_StronglySorted in H;
+    [| apply Rel1_Transitive_pterm_le ].
+  inv H; inv H3. unfold pterm_le in H1; simpl in H1.
+  constructor; [| constructor; unfold pterm_le; auto ].
+  apply StronglySorted_Sorted, Sorted_LocallySorted_iff in H2.
+  apply Sorted_StronglySorted, Sorted_LocallySorted_iff;
+    [ apply Rel1_Transitive_pterm_le |].
+  destruct l'' as [| [v3 c4] l'']; [ constructor |].
+  inv H2. unfold pterm_le in H6; simpl in H6.
+  constructor; unfold pterm_le; auto.
+Qed.
 
 
 

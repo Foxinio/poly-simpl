@@ -58,4 +58,7 @@ Lemma ascii_compare_trans a : forall b c,
   Ascii.compare a b = Lt →
   Ascii.compare b c = Lt →
   Ascii.compare a c = Lt.
+Proof.
+  intros.
+  unfold compare, N_of_ascii.
 Admitted.

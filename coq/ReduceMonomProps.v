@@ -356,9 +356,55 @@ Proof.
     exfalso; apply H3, Heqc.
 Qed.
 
+Theorem reduce_monomials_non_zero_const :
+  ∀ l, sorted l → non_zero_const (reduce_monomials l).
+Proof.
+  strong_list_induction.
+  intros n' IH l Hlen Hsort.
+  destruct l as [| [c1 v1] l'] eqn:?; auto;
+  destruct l' as [| [c2 v2] l''] eqn:?; rewrite reduce_monomials_equation;
+    [ destruct (Z.eqb_spec c1 0) |]; auto.
+  destruct (cmp_vars v1 v2) eqn:?; [| destruct (Z.eqb_spec c1 0) |].
+  - simpl in *.
+    apply (IH (1+List.length l'')); try (subst; simpl; lia).
+    inv Hsort.
+    apply Sorted_LocallySorted_iff, Sorted_inv in H1.
+    destruct H1.
+    apply Sorted_LocallySorted_iff, Sorted_cons; auto.
+    pose proof (cmp_vars_eq_iff _ _ Heqc); subst.
+    eapply HdRel_pterm_le_const_invariant, H0.
+  - inv Hsort.
+    apply (IH (1+List.length l'')); auto; subst; simpl; lia.
+  - constructor; auto.
+    inv Hsort.
+    apply (IH (1+List.length l'')); auto; subst; simpl; lia.
+  - inv Hsort. unfold pterm_le in H3; simpl in H3.
+    exfalso; apply H3, Heqc.
+Qed.
+
 Lemma reduce_clears_zeros :
-  ∀ l, reduce_monomials l = [] → Forall (λ '(PTerm c _), c = 0%Z) l.
-Admitted.
+  ∀ l, reduce_monomials l = [] →
+  fold_left Z.add (map const l) 0%Z = 0%Z.
+Proof.
+  strong_list_induction.
+  intros n' IH l Hlen Hw.
+  destruct l as [| [c1 v1] l']eqn:?; auto.
+  destruct l' as [| [c2 v2] l'']eqn:?; rewrite reduce_monomials_equation in Hw;
+  [ destruct (Z.eqb_spec c1 0); now inv Hw |].
+  destruct (cmp_vars v1 v2) eqn:?;
+  [| destruct (Z.eqb_spec c1 0) | destruct (Z.eqb_spec c1 0) ].
+  - assert (fold_left Z.add (map const (PTerm (c1 + c2) v1 :: l'')) 0%Z = 0%Z);
+    [ apply (IH (1+List.length l'')); auto; subst; simpl; lia |].
+    simpl in *. apply H.
+  - subst c1. rewrite map_spec, fold_left_spec.
+    replace (0+_)%Z with 0%Z by (simpl; lia).
+    apply (IH (List.length l')); auto; subst; simpl; lia.
+  - inv Hw.
+  - subst c1. rewrite map_spec, fold_left_spec.
+    replace (0+_)%Z with 0%Z by (simpl; lia).
+    apply (IH (List.length l')); auto; subst; simpl; lia.
+  - inv Hw.
+Qed.
 
 Lemma reduce_monom_not_rep1 :
   ∀ l' c1 c2 v1 v2 l1, cmp_vars v1 v2 = Lt →
@@ -390,9 +436,8 @@ Proof.
     [ reflexivity | apply H | | apply Heq | left; repeat eexists; eauto
     | right; rewrite reduce_monomials_equation, Heqc; split; auto ].
     + eapply sorted_const_invariant, sorted_shadow, Hsort.
-    + apply reduce_clears_zeros in Hl'nil. inv Hl'nil.
-      rewrite map_spec, fold_left_spec.
-      replace (0+_)%Z with 0%Z by (simpl; lia); auto.
+    + rewrite map_spec, fold_left_spec, <- fold_left_add_acc; subst c2.
+      rewrite reduce_clears_zeros; auto.
     + apply Z.eqb_eq in e; now rewrite e.
   - inversion Heq. destruct l1; inversion H0; subst p. simpl in Hlen.
     edestruct (IH (List.length l'')) as [[c4 [v4 [l4 [Hsplit Hcmp]]]]|[Heqz Hl'nil]];
@@ -488,32 +533,4 @@ Proof.
   - inv Hsort. unfold pterm_le in H3; simpl in H3.
     exfalso; apply H3, Heqc.
 Qed.
-
-Theorem reduce_monomials_non_zero_const :
-  ∀ l, sorted l → non_zero_const (reduce_monomials l).
-Proof.
-  strong_list_induction.
-  intros n' IH l Hlen Hsort.
-  destruct l as [| [c1 v1] l'] eqn:?; auto;
-  destruct l' as [| [c2 v2] l''] eqn:?; rewrite reduce_monomials_equation;
-    [ destruct (Z.eqb_spec c1 0) |]; auto.
-  destruct (cmp_vars v1 v2) eqn:?; [| destruct (Z.eqb_spec c1 0) |].
-  - simpl in *.
-    apply (IH (1+List.length l'')); try (subst; simpl; lia).
-    inv Hsort.
-    apply Sorted_LocallySorted_iff, Sorted_inv in H1.
-    destruct H1.
-    apply Sorted_LocallySorted_iff, Sorted_cons; auto.
-    pose proof (cmp_vars_eq_iff _ _ Heqc); subst.
-    eapply HdRel_pterm_le_const_invariant, H0.
-  - inv Hsort.
-    apply (IH (1+List.length l'')); auto; subst; simpl; lia.
-  - constructor; auto.
-    inv Hsort.
-    apply (IH (1+List.length l'')); auto; subst; simpl; lia.
-  - inv Hsort. unfold pterm_le in H3; simpl in H3.
-    exfalso; apply H3, Heqc.
-Qed.
-
-  
 
