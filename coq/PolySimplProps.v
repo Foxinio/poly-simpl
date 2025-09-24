@@ -1,8 +1,8 @@
-Require Import Utf8.
+From Stdlib Require Import Utf8.
 Set Warnings "-notation-overridden,-parsing,-deprecated-hint-without-locality".
-From Coq Require Import Lia Strings.String Recdef Wf_nat Sorting.Permutation.
-From Coq.Lists Require Import List ListDec.
-Require Import Coq.Classes.Equivalence.
+From Stdlib Require Import Lia Strings.String Recdef Wf_nat Sorting.Permutation.
+From Stdlib.Lists Require Import List ListDec.
+Require Import Stdlib.Classes.Equivalence.
 Import ListNotations.
 
 From PolySimpl Require Import Syntax Utils VarList Algorithm BasicProps.
@@ -47,13 +47,6 @@ Qed.
 Print Assumptions poly_simpl_canonality.
 (*
   Axioms:
-  sorted_shadow :
-    ∀ (l'' : list pterm) (c1 c2 : Z) (v1 v2 : var_list),
-      sorted (PTerm c1 v1 :: PTerm c2 v2 :: l'') → sorted (PTerm c1 v1 :: l'')
-  sorted_const_invariant :
-    ∀ (l'' : list pterm) (c1 c2 c3 : Z) (v1 v2 : var_list),
-      sorted (PTerm c1 v1 :: PTerm c2 v2 :: l'')
-      → sorted (PTerm c1 v1 :: PTerm c3 v2 :: l'')
   polynom_uniqueness :
     ∀ l1 l2 : list pterm,
       l1 ≡ₗ l2
@@ -61,17 +54,30 @@ Print Assumptions poly_simpl_canonality.
         → sorted l2
           → canon_pterm l1
             → canon_pterm l2 → non_zero_const l1 → non_zero_const l2 → l1 = l2
-  nat_lt_antisym : ∀ x y : nat, (x <? y) = false → (y <? x) = false → x = y
-  cmp_vars_trans :
-    ∀ v1 v2 v3 : var_list,
-      cmp_vars v1 v2 = Lt → cmp_vars v2 v3 = Lt → cmp_vars v1 v3 = Lt
-  cmp_vars_refl : ∀ v : var_list, cmp_vars v v = Eq
-  Transitive_pterm_le : Transitive pterm_le
+  AsciiProps.ascii_compare_trans :
+    ∀ a b c : Ascii.ascii,
+      Ascii.compare a b = Lt → Ascii.compare b c = Lt → Ascii.compare a c = Lt
  *)
 
 Print Assumptions poly_simpl_correctness.
-(*
-  Axioms:
-  nat_lt_antisym : ∀ x y : nat, (x <? y) = false → (y <? x) = false → x = y
- *)
+(* Closed under the global context *)
+
+
+(* ======================================================================== *)
+(* New poly_simpl *)
+
+Theorem poly_simpl'_correctness : Correctness poly_simpl'.
+Proof.
+  unfold Correctness, poly_simpl'.
+  intros a st.
+  assert (aeval st a = eval_pterm_list st
+    (reduce_monomials (sort_monomials (clear_zero_powers (poly_flatten a))))).
+  { rewrite <- reduce_monomials_correct.
+    rewrite <- sort_monomials_correct.
+    rewrite <- clear_zero_powers_correct.
+    now rewrite <- poly_flatten_correct. }
+  destruct (reduce_monomials _) eqn:?.
+  - now transitivity (eval_pterm_list st (@nil pterm)).
+  - now rewrite reconstruct'_correct.
+Qed.
 

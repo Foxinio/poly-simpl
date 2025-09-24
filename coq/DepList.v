@@ -1,8 +1,8 @@
-Require Import Utf8.
+From Stdlib Require Import Utf8.
 Set Warnings "-notation-overridden,-parsing,-deprecated-hint-without-locality".
-From Coq Require Import Lia Strings.String Recdef Wf_nat.
-From Coq.Lists Require Import List ListDec.
-Require Import Coq.Classes.Equivalence.
+From Stdlib Require Import Lia Strings.String Recdef Wf_nat.
+From Stdlib.Lists Require Import List ListDec.
+Require Import Stdlib.Classes.Equivalence.
 Import ListNotations.
 
 Section DepList.

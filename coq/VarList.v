@@ -1,9 +1,9 @@
-Require Import Utf8.
+From Stdlib Require Import Utf8.
 Set Warnings "-notation-overridden,-parsing,-deprecated-hint-without-locality".
-From Coq Require Import Lia Bool.Bool Strings.String Lists.List Recdef Wf_nat Sorting.Permutation.
-From Coq Require Import ZArith.Int ZArith Lists.List.
+From Stdlib Require Import Lia Bool.Bool Strings.String Lists.List Recdef Wf_nat Sorting.Permutation.
+From Stdlib Require Import ZArith.Int ZArith Lists.List.
 (* From Coq Require Import ssreflect. *)
-Require Import Coq.Classes.Equivalence.
+Require Import Stdlib.Classes.Equivalence.
 Import ListNotations.
 
 Require Import Syntax Utils BasicProps Algorithm PFlattenProps.

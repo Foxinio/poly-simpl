@@ -1,7 +1,7 @@
-Require Import Utf8.
+From Stdlib Require Import Utf8.
 From PolySimpl Require Export Maps.
-From Coq Require Export Lists.List Strings.String.
-From Coq Require Export ZArith.Int ZArith.
+From Stdlib Require Export Lists.List Strings.String.
+From Stdlib Require Export ZArith.Int ZArith.
 
 Definition state := total_map Z.
 

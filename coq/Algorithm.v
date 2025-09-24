@@ -1,7 +1,7 @@
-Require Import Utf8.
-From Coq Require Import ZArith.Int ZArith Lists.List.
-From Coq Require Import Lia Strings.String.
-From Coq Require Import Recdef Wf_nat.
+From Stdlib Require Import Utf8.
+From Stdlib Require Import ZArith.Int ZArith Lists.List.
+From Stdlib Require Import Lia Strings.String.
+From Stdlib Require Import Recdef Wf_nat Nat.
 Require Import Syntax Utils BasicProps.
 
 Import Int.
@@ -170,7 +170,7 @@ Defined.
 
 
 (* ======================================================================== *)
-(* poly_simpl *)
+(* Old reconstruct *)
 
 Fixpoint reconstruct_var_pow x n :=
   match n with
@@ -195,6 +195,42 @@ Fixpoint reconstruct (l : list pterm) : aexp :=
   end.
 
 (* ======================================================================== *)
+(* New reconstruct *)
+
+Fixpoint reconstruct_var_pow' x n :=
+  match n with
+  | 0    => ANum 1 (* Doesn't happen, and is proven to not happen *)
+  | S 0  => AId x
+  | S n' => AMult (reconstruct_var_pow' x n') (AId x)
+  end.
+
+Fixpoint reconstruct_monom_fix' v (l : var_list) : aexp :=
+  let '(x', n') := v in
+  match l with
+  | [] =>
+      reconstruct_var_pow x' n'
+  | v :: l' =>
+      AMult (reconstruct_var_pow x' n') (reconstruct_monom_fix' v l')
+  end.
+
+Definition reconstruct_monom' c (l : var_list) : aexp :=
+  match c, l with
+  | _, []   => ANum c
+  | 0%Z, _ => ANum 0%Z (* Doesn't happen *)
+  | 1%Z, v :: vs => reconstruct_monom_fix' v vs
+  | _,   v :: vs => AMult (ANum c) (reconstruct_monom_fix' v vs)
+  end.
+
+
+Fixpoint reconstruct' p (l : list pterm)  : aexp :=
+  let '(PTerm c' vars') := p in
+  match l with
+  | [] => reconstruct_monom' c' vars'
+  | p :: l' =>
+      APlus (reconstruct' p l') (reconstruct_monom' c' vars')
+  end.
+
+(* ======================================================================== *)
 (* poly_simpl *)
 
 Definition poly_simpl (a : aexp) :=
@@ -203,5 +239,14 @@ Definition poly_simpl (a : aexp) :=
   let l3 := sort_monomials l2 in
   let l4 := reduce_monomials l3 in
   reconstruct l4.
+
+Definition poly_simpl' (a : aexp) :=
+  let l1 := poly_flatten a in
+  let l2 := clear_zero_powers l1 in
+  let l3 := sort_monomials l2 in
+  match reduce_monomials l3 with
+  | [] => ANum 0
+  | p :: l4 => reconstruct' p l4
+  end.
 
 

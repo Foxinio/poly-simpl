@@ -1,7 +1,7 @@
-Require Import Utf8.
-From Coq Require Import Recdef Wf_nat.
-From Coq Require Import Bool.Bool Lia Lists.List Strings.String.
-From Coq Require Import ZArith ZArith.Int.
+From Stdlib Require Import Utf8.
+From Stdlib Require Import Recdef Wf_nat.
+From Stdlib Require Import Bool.Bool Lia Lists.List Strings.String.
+From Stdlib Require Import ZArith ZArith.Int.
 Require Import Syntax Utils BasicProps Algorithm.
 
 Import ListNotations.

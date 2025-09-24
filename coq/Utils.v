@@ -1,7 +1,7 @@
-Require Import Utf8.
-From Coq Require Import ZArith.Int ZArith Lia Arith.
-From Coq Require Import Strings.String Lists.List Sorting.Permutation Sets.Relations_1.
-From Coq Require Import Classes.Equivalence Bool.Bool Sorting.Sorted.
+From Stdlib Require Import Utf8.
+From Stdlib Require Import ZArith.Int ZArith Lia Arith.
+From Stdlib Require Import Strings.String Lists.List Sorting.Permutation Sets.Relations_1.
+From Stdlib Require Import Classes.Equivalence Bool.Bool Sorting.Sorted.
 Require Import AsciiProps BasicProps Syntax.
 
 Import Int.

@@ -1,5 +1,5 @@
-Require Import Utf8.
-From Coq Require Import ZArith.Int ZArith Lists.List Sorting.Sorted.
+From Stdlib Require Import Utf8.
+From Stdlib Require Import ZArith.Int ZArith Lists.List Sorting.Sorted.
 Require Import Syntax.
 
 Import Int.
@@ -202,3 +202,9 @@ Hint Unfold pterm_le : core.
 
 Definition sorted := LocallySorted pterm_le.
 Hint Unfold sorted : core.
+
+(* ======================================================================== *)
+(* sorted pterm properties *)
+
+  
+

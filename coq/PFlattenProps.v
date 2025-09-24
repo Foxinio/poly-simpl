@@ -1,7 +1,7 @@
-Require Import Utf8.
+From Stdlib Require Import Utf8.
 Require Import Syntax Utils BasicProps Algorithm.
 
-From Coq Require Import Lists.List Lia.
+From Stdlib Require Import Lists.List Lia.
 
 Import ListNotations.
 

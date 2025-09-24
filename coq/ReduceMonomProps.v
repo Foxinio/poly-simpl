@@ -1,7 +1,7 @@
-Require Import Utf8.
+From Stdlib Require Import Utf8.
 Set Warnings "-notation-overridden,-parsing,-deprecated-hint-without-locality".
-From Coq Require Import Lia Recdef Wf_nat.
-From Coq Require Import Bool.Bool Lists.List Strings.String Sorting.Sorted.
+From Stdlib Require Import Lia Recdef Wf_nat.
+From Stdlib Require Import Bool.Bool Lists.List Strings.String Sorting.Sorted.
 Import ListNotations.
 
 From PolySimpl Require Import Syntax Utils BasicProps Algorithm VarList.
