@@ -1,7 +1,5 @@
-From Stdlib Require Import Utf8.
-Set Warnings "-notation-overridden,-parsing,-deprecated-hint-without-locality".
-From Stdlib Require Import Lia Recdef Wf_nat.
-From Stdlib Require Import Bool.Bool Lists.List Strings.String Sorting.Sorted.
+From Stdlib Require Import Lia.
+From Stdlib Require Import Bool List Sorted.
 Import ListNotations.
 
 From PolySimpl Require Import Syntax Utils BasicProps Algorithm.

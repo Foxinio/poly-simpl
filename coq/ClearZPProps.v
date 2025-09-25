@@ -1,10 +1,5 @@
-From Stdlib Require Import Utf8.
-From Stdlib Require Import Recdef Wf_nat.
-From Stdlib Require Import Bool.Bool Lia Lists.List Strings.String.
-From Stdlib Require Import ZArith ZArith.Int.
+From Stdlib Require Import List.
 Require Import Syntax Utils BasicProps Algorithm.
-
-Import ListNotations.
 
 Theorem clear_zero_powers_correct (l : list pterm) :
   l ≡ₗ clear_zero_powers l.

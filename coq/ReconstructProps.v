@@ -1,6 +1,4 @@
-From Stdlib Require Import Utf8.
-Set Warnings "-notation-overridden,-parsing,-deprecated-hint-without-locality".
-From Stdlib Require Import Lia Lists.List Strings.String Recdef Wf_nat.
+From Stdlib Require Import Lia List.
 Import ListNotations.
 
 Require Import Syntax Utils BasicProps Algorithm.

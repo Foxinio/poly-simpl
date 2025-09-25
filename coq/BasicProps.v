@@ -1,5 +1,4 @@
-From Stdlib Require Import Utf8.
-From Stdlib Require Import ZArith.Int ZArith Lists.List Sorting.Sorted.
+From Stdlib Require Import Int List Sorting.Sorted.
 Require Import Syntax.
 
 Import Int.
@@ -81,18 +80,7 @@ Definition no_zero_powers (l : list pterm) :=
 Hint Unfold no_zero_powers : core.
 
 (* ======================================================================== *)
-(* grouped pterm properties *)
-
-Fixpoint grouped_eval_pl (st : state) (l : list (list pterm)) :=
-  match l with
-  | [] => 0%Z
-  | ls :: l' => (eval_pterm_list st ls + grouped_eval_pl st l')%Z
-  end.
-
-Definition grouped_eval_equiv l1 l2 :=
-  ∀ st, grouped_eval_pl st l1 = grouped_eval_pl st l2. 
-Hint Unfold grouped_eval_equiv : core.
-Notation "a '≡ₚ' b" := (grouped_eval_equiv a b) (at level 70).
+(* equiv_list properties *)
 
 Definition pterm_equiv (p1 p2 : pterm) :=
   let '(PTerm _ v1) := p1 in
@@ -107,23 +95,6 @@ Inductive equiv_list : list pterm → Prop :=
       pterm_equiv a b →
       equiv_list (b :: a :: l).
 Hint Constructors equiv_list : core.
-
-Inductive Disjoint : list (list pterm) → Prop :=
-  | disjoint_nil : Disjoint []
-  | disjoint_single l :
-      equiv_list l →
-      Disjoint [l]
-  | disjoint_cons p p' (l l' : list pterm) (ls : list (list pterm)) :
-      equiv_list (p::l) →
-      ~In (p'::l') ls →
-      pterm_equiv p p' →
-      Disjoint ls →
-      Disjoint ((p::l)::ls).
-Hint Constructors Disjoint : core.
-
-Definition grouped_pterms (l : list (list pterm)) :=
-  Forall equiv_list l /\ Disjoint l.
-Hint Unfold grouped_pterms : core.
 
 (* ======================================================================== *)
 (* variables equivalence properties *)
@@ -161,23 +132,7 @@ Hint Unfold vlequiv : core.
 Notation "a '≡ᵥ' b" := (vlequiv a b) (at level 70).
 
 (* ======================================================================== *)
-(* grouped pterm properties *)
-
-Inductive grouped_flat : list pterm → Prop :=
-  | GF_nil : grouped_flat []
-  | GF_single l :
-      grouped_flat [l]
-  | GF_last_rep p p' l :
-      ~In p' l →
-      pterm_equiv p p' →
-      grouped_flat l →
-      grouped_flat (p :: l)
-  | GF_cons p p' l :
-      pterm_equiv p p' →
-      grouped_flat (p' :: l) →
-      grouped_flat (p :: p' :: l)
-  .
-Hint Constructors grouped_flat : core.
+(* canon pterm properties *)
 
 Inductive canon_pterm : list pterm → Prop :=
   | CP_nil : canon_pterm []
@@ -202,9 +157,4 @@ Hint Unfold pterm_le : core.
 
 Definition sorted := LocallySorted pterm_le.
 Hint Unfold sorted : core.
-
-(* ======================================================================== *)
-(* sorted pterm properties *)
-
-  
 

@@ -1,10 +1,7 @@
-From Stdlib Require Import Utf8.
-From Stdlib Require Import ZArith.Int ZArith Lia Arith.
-From Stdlib Require Import Strings.String Lists.List Sorting.Permutation Sets.Relations_1.
-From Stdlib Require Import Classes.Equivalence Bool.Bool Sorting.Sorted.
+From Stdlib Require Import Int Lia List Equivalence Bool Sorted.
+
 Require Import AsciiProps BasicProps Syntax.
 
-Import Int.
 Open Scope Int_scope.
 Import ListNotations.
 
@@ -95,42 +92,6 @@ Ltac auto_specialize H :=
       specialize (H HAsmpt);
       clear HAsmpt
   end.
-
-Inductive StringLt : string → string → Prop :=
-  | SLt_nil c s : StringLt ""%string (String c s)
-  | SLt_ascii c1 c2 s1 s2 :
-      Ascii.compare c1 c2 = Lt →
-      StringLt (String c1 s1) (String c2 s2)
-  | SLt_cons c1 c2 s1 s2 :
-      Ascii.compare c1 c2 = Eq →
-      StringLt s1 s2 →
-      StringLt (String c1 s1) (String c2 s2).
-
-Lemma StringLt_ltb_iff a b :
-  StringLt a b ↔ (a <? b)%string = true.
-Proof.
-  split.
-{ intro. enough ((a ?= b)%string = Lt);
-    [ unfold ltb; now rewrite H0 |].
-  induction H.
-  - auto.
-  - unfold compare.
-    now rewrite H.
-  - cbn.
-    now rewrite H, IHStringLt.
-} { intro H.
-  assert (a ?= b = Lt)%string;
-  [ unfold ltb in H; destruct (a ?= b)%string; auto; discriminate |].
-  clear H.
-  generalize dependent b; induction a; simpl; intros; auto.
-  - destruct b; [ discriminate | constructor ].
-  - destruct b; [ discriminate |].
-    destruct (Ascii.compare a a1) eqn:?.
-    + pose proof (Ascii.compare_eq_iff _ _ Heqc).
-      apply SLt_cons; auto.
-    + apply SLt_ascii; auto.
-    + discriminate. }
-Qed.
 
 Lemma ltb_trans a : forall b c,
   (a <? b)%string = true →
@@ -675,6 +636,4 @@ Proof.
   inv H2. unfold pterm_le in H6; simpl in H6.
   constructor; unfold pterm_le; auto.
 Qed.
-
-
 

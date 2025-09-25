@@ -1,13 +1,8 @@
-From Stdlib Require Import Utf8.
+From Stdlib Require Import List Lia.
+
 Require Import Syntax Utils BasicProps Algorithm.
 
-From Stdlib Require Import Lists.List Lia.
-
 Import ListNotations.
-
-(* First we define definitions of what we want to prove *)
-
-(* Next we prove it *)
 
 Lemma pow_correct (st : state) x : st x = pow st (x, 1%nat).
 Proof.

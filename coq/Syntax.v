@@ -1,4 +1,4 @@
-From Stdlib Require Import Utf8 Strings.String ZArith.
+From Stdlib Require Export Utf8 Strings.String ZArith.
 
 Definition state := string → Z.
 

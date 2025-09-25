@@ -1,11 +1,6 @@
-From Stdlib Require Import Utf8.
-From Stdlib Require Import ZArith.Int ZArith Lists.List.
-From Stdlib Require Import Lia Strings.String.
-From Stdlib Require Import Recdef Wf_nat Nat.
+From Stdlib Require Import Utf8 Lia Recdef List.
 Require Import Syntax Utils BasicProps.
 
-Import Int.
-Open Scope Int_scope.
 Import ListNotations.
 Import List.
 
