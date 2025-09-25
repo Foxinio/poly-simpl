@@ -178,9 +178,6 @@ Proof.
   now rewrite ascii_compare_refl.
 Qed.
 
-Lemma string_ltb_irrefl a : (a <? a)%string = false.
-Admitted.
-
 Lemma sorted_uniq_cons l a :
   sorted_uniq (a :: l) → sorted_uniq l.
 Proof.
@@ -327,42 +324,6 @@ Proof.
   induction l; simpl; auto using Z.add_comm.
   repeat rewrite <- fold_left_mul_acc.
   now rewrite <- Z.mul_add_distr_r, IHl.
-Qed.
-
-Lemma Exists_witness {A} (P : A → Prop) l :
-  Exists P l → ∃ l1 a l2, l = l1 ++ a :: l2 /\ P a. 
-Proof.
-  induction l; intros H; inv H.
-  - exists [], a, l; split; auto.
-  - destruct (IHl H1) as [l1 [b [l2 [Hdiv Hp]]]].
-    exists (a::l1), b, l2; split; auto; simpl.
-    f_equal; auto.
-Qed.
-
-Theorem Forall_perm: forall {A} (f: A -> Prop) al bl,
-  Permutation al bl ->
-  Forall f al -> Forall f bl.
-Proof.
-Admitted.
-
-Lemma Forall_neq_nIn {A} (a : A) l :
-  Forall (λ b, a ≠ b) l → ~In a l. 
-Proof.
-  induction l.
-  - intros _ HC; inv HC.
-  - intros HFa HIn.
-    inv HFa.
-    inv HIn; auto.
-    apply IHl; auto.
-Qed.
-
-Lemma In_witness {A} (a : A) l :
-  In a l → ∃ l1 l2, l = l1 ++ a :: l2. 
-Proof.
-  induction l; simpl; [ intros HIn; inv HIn | intros [ Heq | HIn ]].
-  - exists [], l; subst; auto.
-  - destruct (IHl HIn) as [l1 [l2 Heq]].
-    exists (a0::l1), l2; subst; auto.
 Qed.
 
 Lemma not_Exists_not_Forall {A} l P :

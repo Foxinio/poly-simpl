@@ -3,7 +3,7 @@ Set Warnings "-notation-overridden,-parsing,-deprecated-hint-without-locality".
 From Stdlib Require Import Lia Lists.List Strings.String Recdef Wf_nat Sorting.Sorted.
 Import ListNotations.
 
-From PolySimpl Require Import Syntax Utils BasicProps Algorithm VarList.
+From PolySimpl Require Import Syntax Utils BasicProps Algorithm.
 
 Theorem polynom_uniqueness :
   ∀ l1 l2, l1 ≡ₗ l2 →

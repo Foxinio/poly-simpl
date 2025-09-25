@@ -5,6 +5,6 @@ From Stdlib.Lists Require Import List ListDec.
 Require Import Stdlib.Classes.Equivalence.
 Import ListNotations.
 
-From PolySimpl Require Import Syntax Utils VarList BasicProps.
+From PolySimpl Require Import Syntax Utils BasicProps.
 From PolySimpl Require Import PFlattenProps ClearZPProps ReduceMonomProps.
 

@@ -71,12 +71,12 @@ Lemma reconstruct_monom_fix'_correct st vs v :
 Proof.
   revert v.
   induction vs as [| [x n] l']; auto; simpl; intros [x' n']; autorewrite with zsimpl.
-  - (* now rewrite reconstruct_var_pow'_correct. *)
-    admit.
-  - simpl. rewrite IHl', <- fold_left_mul_acc.
-    (* now rewrite reconstruct_var_pow'_correct. *)
-    admit.
-Admitted.
+  - apply reconstruct_var_pow'_correct.
+  - simpl. rewrite IHl', reconstruct_var_pow'_correct.
+    rewrite map_spec, fold_left_spec.
+    rewrite Z.mul_comm, Z.mul_1_l, fold_left_mul_acc.
+    f_equal; simpl; lia.
+Qed.
 
 Lemma reconstruct_monom'_correct st c v :
   aeval st (reconstruct_monom' c v) = fold_left Z.mul (map (pow st) v) c.
@@ -99,7 +99,7 @@ Qed.
 
 
 Theorem reconstruct'_correct (p : pterm) (l : list pterm) :
-  reconstruct' p l ≲ₗ (p :: l).
+  reconstruct_fix' p l ≲ₗ (p :: l).
 Proof.
   intro st. revert p.
   induction l as [| [c v] l']; auto; intros [c' v']; simpl.

@@ -4,7 +4,7 @@ From Stdlib Require Import Lia Recdef Wf_nat.
 From Stdlib Require Import Bool.Bool Lists.List Strings.String Sorting.Sorted.
 Import ListNotations.
 
-From PolySimpl Require Import Syntax Utils BasicProps Algorithm VarList.
+From PolySimpl Require Import Syntax Utils BasicProps Algorithm.
 
 Lemma merge_monom_correct (st : state) :
   ∀ l1 l2,

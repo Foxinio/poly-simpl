@@ -208,9 +208,9 @@ Fixpoint reconstruct_monom_fix' v (l : var_list) : aexp :=
   let '(x', n') := v in
   match l with
   | [] =>
-      reconstruct_var_pow x' n'
+      reconstruct_var_pow' x' n'
   | v :: l' =>
-      AMult (reconstruct_var_pow x' n') (reconstruct_monom_fix' v l')
+      AMult (reconstruct_var_pow' x' n') (reconstruct_monom_fix' v l')
   end.
 
 Definition reconstruct_monom' c (l : var_list) : aexp :=
@@ -222,13 +222,20 @@ Definition reconstruct_monom' c (l : var_list) : aexp :=
   end.
 
 
-Fixpoint reconstruct' p (l : list pterm)  : aexp :=
+Fixpoint reconstruct_fix' p (l : list pterm)  : aexp :=
   let '(PTerm c' vars') := p in
   match l with
   | [] => reconstruct_monom' c' vars'
   | p :: l' =>
-      APlus (reconstruct' p l') (reconstruct_monom' c' vars')
+      APlus (reconstruct_fix' p l') (reconstruct_monom' c' vars')
   end.
+
+Definition reconstruct' (l : list pterm) : aexp :=
+  match l with
+  | [] => ANum 0
+  | p :: l' => reconstruct_fix' p l'
+  end.
+
 
 (* ======================================================================== *)
 (* poly_simpl *)
@@ -244,9 +251,7 @@ Definition poly_simpl' (a : aexp) :=
   let l1 := poly_flatten a in
   let l2 := clear_zero_powers l1 in
   let l3 := sort_monomials l2 in
-  match reduce_monomials l3 with
-  | [] => ANum 0
-  | p :: l4 => reconstruct' p l4
-  end.
+  let l4 := reduce_monomials l3 in
+  reconstruct' l4.
 
 

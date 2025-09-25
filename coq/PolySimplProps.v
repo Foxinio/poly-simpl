@@ -5,7 +5,7 @@ From Stdlib.Lists Require Import List ListDec.
 Require Import Stdlib.Classes.Equivalence.
 Import ListNotations.
 
-From PolySimpl Require Import Syntax Utils VarList Algorithm BasicProps.
+From PolySimpl Require Import Syntax Utils Algorithm BasicProps.
 From PolySimpl Require Import PFlattenProps ClearZPProps ReduceMonomProps ReconstructProps.
 From PolySimpl Require Import PolyUniqueness.
 
@@ -66,9 +66,34 @@ Print Assumptions poly_simpl_correctness.
 (* ======================================================================== *)
 (* New poly_simpl *)
 
+Theorem poly_simpl'_canonality : Canonality poly_simpl'.
+Proof.
+  unfold Canonality, poly_simpl'.
+  intros a1 a2 Heqv.
+  f_equal.
+  apply polynom_uniqueness.
+  - intro st.
+    repeat rewrite <- reduce_monomials_correct.
+    repeat rewrite <- sort_monomials_correct.
+    repeat rewrite <- clear_zero_powers_correct.
+    now repeat rewrite <- poly_flatten_correct.
+  - apply reduce_monomials_sort_preserve.
+    apply sort_monomials_sorts.
+  - apply reduce_monomials_sort_preserve.
+    apply sort_monomials_sorts.
+  - apply reduce_monomials_canonical.
+    apply sort_monomials_sorts.
+  - apply reduce_monomials_canonical.
+    apply sort_monomials_sorts.
+  - apply reduce_monomials_non_zero_const.
+    apply sort_monomials_sorts.
+  - apply reduce_monomials_non_zero_const.
+    apply sort_monomials_sorts.
+Qed.
+
 Theorem poly_simpl'_correctness : Correctness poly_simpl'.
 Proof.
-  unfold Correctness, poly_simpl'.
+  unfold Correctness, poly_simpl', reconstruct'.
   intros a st.
   assert (aeval st a = eval_pterm_list st
     (reduce_monomials (sort_monomials (clear_zero_powers (poly_flatten a))))).
@@ -81,3 +106,4 @@ Proof.
   - now rewrite reconstruct'_correct.
 Qed.
 
+Print Assumptions poly_simpl'_correctness.
